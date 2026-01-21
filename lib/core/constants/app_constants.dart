@@ -1,6 +1,6 @@
 class AppConstants {
   // App info
-  static const String appName = 'Cotiza YA!';
+  static const String appName = 'PresuYa';
   static const String appVersion = '1.0.0';
   
   // Date formats

@@ -25,7 +25,7 @@ class PdfGeneratorService {
             items: items,
             total: total,
             businessName: profile.businessName.isEmpty
-                ? 'Cotiza YA!'
+                ? 'PresuYa'
                 : profile.businessName,
             phone: profile.phone,
             logoPath: profile.logoPath,

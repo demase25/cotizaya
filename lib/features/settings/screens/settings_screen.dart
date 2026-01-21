@@ -43,20 +43,93 @@ class _SettingsScreenState extends State<SettingsScreen> {
     super.dispose();
   }
 
-  Future<void> _pickImage() async {
+  Future<void> _showImageSourceDialog() async {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            ListTile(
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.photo_library, color: AppColors.primary),
+              ),
+              title: const Text('Galería'),
+              subtitle: const Text('Seleccionar desde tus fotos'),
+              onTap: () {
+                Navigator.pop(context);
+                _pickImage(ImageSource.gallery);
+              },
+            ),
+            ListTile(
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.camera_alt, color: AppColors.primary),
+              ),
+              title: const Text('Cámara'),
+              subtitle: const Text('Tomar una foto'),
+              onTap: () {
+                Navigator.pop(context);
+                _pickImage(ImageSource.camera);
+              },
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
     try {
       final XFile? image = await _imagePicker.pickImage(
-        source: ImageSource.gallery,
-        maxWidth: 512,
-        maxHeight: 512,
-        imageQuality: 85,
+        source: source,
+        maxWidth: 800,
+        maxHeight: 800,
+        imageQuality: 90,
       );
 
       if (image != null) {
+        // Eliminar logo anterior si existe
+        if (_logoPath != null) {
+          try {
+            final File oldFile = File(_logoPath!);
+            if (oldFile.existsSync()) {
+              oldFile.deleteSync();
+            }
+          } catch (e) {
+            // Ignorar errores al eliminar
+          }
+        }
+
         // Copiar la imagen al directorio de documentos de la app
         final Directory appDocDir = await getApplicationDocumentsDirectory();
-        final String fileName = path.basename(image.path);
-        final String newPath = path.join(appDocDir.path, 'logo_$fileName');
+        final String timestamp = DateTime.now().millisecondsSinceEpoch.toString();
+        final String extension = path.extension(image.path);
+        final String newPath = path.join(appDocDir.path, 'logo_$timestamp$extension');
         
         // Copiar el archivo
         final File sourceFile = File(image.path);
@@ -65,6 +138,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
         setState(() {
           _logoPath = newFile.path;
         });
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Row(
+                children: [
+                  Icon(Icons.check_circle, color: Colors.white, size: 20),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Text('Logo agregado correctamente'),
+                  ),
+                ],
+              ),
+              backgroundColor: AppColors.secondary,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              margin: const EdgeInsets.all(16),
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -79,7 +175,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ],
             ),
-            backgroundColor: AppColors.pending,
+            backgroundColor: AppColors.error,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
@@ -137,6 +233,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
         duration: const Duration(seconds: 2),
       ),
     );
+
+    // Volver automáticamente a HomeScreen después de guardar
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (mounted) {
+        Navigator.pop(context);
+      }
+    });
   }
 
   void _deleteAllBudgets() {
@@ -213,215 +316,620 @@ class _SettingsScreenState extends State<SettingsScreen> {
       body: ListView(
         padding: const EdgeInsets.symmetric(vertical: 8),
         children: [
-          // Sección: Empresa
+          // Sección: Empresa - Diseño minimalista
           _SectionHeader(title: 'Empresa'),
-          Card(
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          
+          // Nombre del negocio - Simple y limpio
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                ListTile(
-                  leading: Icon(Icons.business, color: AppColors.textSecondary),
-                  title: const Text('Nombre del negocio'),
-                  subtitle: TextField(
-                    controller: _businessController,
-                    decoration: const InputDecoration(
-                      hintText: 'Ej: Juan Electricista',
-                      border: InputBorder.none,
-                      isDense: true,
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                    style: const TextStyle(fontSize: 14),
+                Text(
+                  'Nombre del negocio',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textSecondary,
                   ),
                 ),
-                const Divider(height: 1),
-                ListTile(
-                  leading: Icon(Icons.image_outlined, color: AppColors.textSecondary),
-                  title: const Text('Logo'),
-                  subtitle: Text(_logoPath != null ? 'Logo agregado' : 'Toca para agregar un logo'),
-                  trailing: GestureDetector(
-                    onTap: _pickImage,
-                    child: Container(
-                      width: 56,
-                      height: 56,
-                      decoration: BoxDecoration(
+                const SizedBox(height: 8),
+                TextField(
+                  controller: _businessController,
+                  decoration: InputDecoration(
+                    hintText: 'Ej: PresuYa Servicios',
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.grey.shade200),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.grey.shade200),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: AppColors.primary, width: 2),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 16,
+                    ),
+                  ),
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 32),
+
+          // Logo - Protagonista, sin cajas innecesarias
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Logo de tu negocio',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Se usará en tus presupuestos PDF',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textSecondary.withOpacity(0.7),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                // Área de logo - Minimalista
+                InkWell(
+                  onTap: _showImageSourceDialog,
+                  borderRadius: BorderRadius.circular(16),
+                  child: Container(
+                    width: double.infinity,
+                    height: 180,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
                         color: _logoPath != null 
-                            ? Colors.transparent 
+                            ? AppColors.secondary.withOpacity(0.3)
                             : Colors.grey.shade200,
-                        borderRadius: BorderRadius.circular(12),
-                        border: _logoPath != null 
-                            ? Border.all(color: Colors.grey.shade300, width: 1)
-                            : null,
+                        width: 1.5,
                       ),
-                      child: _logoPath != null && File(_logoPath!).existsSync()
-                          ? ClipRRect(
-                              borderRadius: BorderRadius.circular(12),
-                              child: Image.file(
-                                File(_logoPath!),
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return Icon(
-                                    Icons.broken_image,
-                                    color: Colors.grey.shade400,
+                    ),
+                    child: _logoPath != null && File(_logoPath!).existsSync()
+                        ? Stack(
+                            children: [
+                              Center(
+                                child: Padding(
+                                  padding: const EdgeInsets.all(24),
+                                  child: Image.file(
+                                    File(_logoPath!),
+                                    fit: BoxFit.contain,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return Icon(
+                                        Icons.broken_image,
+                                        color: Colors.grey.shade300,
+                                        size: 48,
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ),
+                              Positioned(
+                                top: 12,
+                                right: 12,
+                                child: Material(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(20),
+                                  elevation: 2,
+                                  child: InkWell(
+                                    onTap: _showImageSourceDialog,
+                                    borderRadius: BorderRadius.circular(20),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(8),
+                                      child: Icon(
+                                        Icons.edit_outlined,
+                                        size: 18,
+                                        color: AppColors.primary,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          )
+                        : Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Container(
+                                  width: 64,
+                                  height: 64,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.secondary.withOpacity(0.1),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(
+                                    Icons.add_photo_alternate_outlined,
+                                    size: 32,
+                                    color: AppColors.secondary,
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                Text(
+                                  'Toca para agregar logo',
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w500,
+                                    color: AppColors.textPrimary,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Galería o Cámara',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                  ),
+                ),
+                // Recomendaciones discretas (tooltip o texto pequeño)
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.info_outline,
+                      size: 14,
+                      color: AppColors.textSecondary.withOpacity(0.6),
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        'Recomendado: Cuadrado (1:1), 200x200px mínimo, PNG/JPG, fondo transparente',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: AppColors.textSecondary.withOpacity(0.6),
+                          height: 1.3,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                // Botón eliminar logo - Más visible y definido
+                if (_logoPath != null) ...[
+                  const SizedBox(height: 20),
+                  Center(
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        showDialog(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            title: const Text(
+                              'Eliminar logo',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            content: const Text(
+                              '¿Quieres quitar el logo de tu negocio? Se eliminará de todos los presupuestos futuros.',
+                              style: TextStyle(fontSize: 14),
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context),
+                                child: const Text('Cancelar'),
+                              ),
+                              ElevatedButton(
+                                onPressed: () {
+                                  _removeLogo();
+                                  Navigator.pop(context);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Row(
+                                        children: [
+                                          Icon(
+                                            Icons.check_circle,
+                                            color: Colors.white,
+                                            size: 20,
+                                          ),
+                                          const SizedBox(width: 12),
+                                          const Expanded(
+                                            child: Text('Logo eliminado'),
+                                          ),
+                                        ],
+                                      ),
+                                      backgroundColor: AppColors.secondary,
+                                      behavior: SnackBarBehavior.floating,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      margin: const EdgeInsets.all(16),
+                                      duration: const Duration(seconds: 2),
+                                    ),
                                   );
                                 },
-                              ),
-                            )
-                          : Icon(
-                              Icons.add_photo_alternate_outlined,
-                              color: Colors.grey.shade400,
-                            ),
-                    ),
-                  ),
-                  onTap: _pickImage,
-                ),
-                if (_logoPath != null) ...[
-                  const Divider(height: 1),
-                  ListTile(
-                    leading: Icon(Icons.delete_outline, color: AppColors.pending),
-                    title: const Text('Eliminar logo'),
-                    subtitle: const Text('Quitar el logo actual'),
-                    onTap: () {
-                      _removeLogo();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: const Row(
-                            children: [
-                              Icon(Icons.check_circle, color: Colors.white, size: 20),
-                              SizedBox(width: 12),
-                              Expanded(
-                                child: Text('Logo eliminado'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.error,
+                                  foregroundColor: Colors.white,
+                                ),
+                                child: const Text('Eliminar'),
                               ),
                             ],
                           ),
-                          backgroundColor: AppColors.secondary,
-                          behavior: SnackBarBehavior.floating,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          margin: const EdgeInsets.all(16),
-                          duration: const Duration(seconds: 2),
+                        );
+                      },
+                      icon: Icon(
+                        Icons.delete_outline,
+                        size: 18,
+                        color: AppColors.error,
+                      ),
+                      label: Text(
+                        'Quitar logo',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.error,
                         ),
-                      );
-                    },
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(
+                          color: AppColors.error,
+                          width: 1.5,
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 12,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
                   ),
                 ],
-                const Divider(height: 1),
-                ListTile(
-                  leading: Icon(Icons.phone, color: AppColors.textSecondary),
-                  title: const Text('Teléfono / WhatsApp'),
-                  subtitle: TextField(
-                    controller: _phoneController,
-                    keyboardType: TextInputType.phone,
-                    decoration: const InputDecoration(
-                      hintText: 'Ej: 11 1234 5678',
-                      border: InputBorder.none,
-                      isDense: true,
-                      contentPadding: EdgeInsets.zero,
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 32),
+
+          // Teléfono - Simple y limpio
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Teléfono / WhatsApp',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: _phoneController,
+                  keyboardType: TextInputType.phone,
+                  decoration: InputDecoration(
+                    hintText: 'Ej: 11 1234 5678',
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.grey.shade200),
                     ),
-                    style: const TextStyle(fontSize: 14),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.grey.shade200),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: AppColors.primary, width: 2),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 16,
+                    ),
+                  ),
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ],
             ),
           ),
 
-          const SizedBox(height: 8),
+          const SizedBox(height: 32),
 
-          // Sección: PDF
+          // Sección: PDF - Minimalista
           _SectionHeader(title: 'PDF'),
-          Card(
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Column(
               children: [
-                ListTile(
-                  leading: Icon(Icons.attach_money, color: AppColors.textSecondary),
-                  title: const Text('Moneda'),
-                  trailing: DropdownButton<String>(
-                    value: _currency,
-                    underline: const SizedBox(),
-                    items: const [
-                      DropdownMenuItem(value: 'MXN', child: Text('MXN - \$')),
-                      DropdownMenuItem(value: 'USD', child: Text('USD - \$')),
-                      DropdownMenuItem(value: 'EUR', child: Text('EUR - €')),
+                // Moneda
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey.shade200),
+                  ),
+                  child: Row(
+                    children: [
+                      Text(
+                        'Moneda',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const Spacer(),
+                      DropdownButton<String>(
+                        value: _currency,
+                        underline: const SizedBox(),
+                        items: const [
+                          DropdownMenuItem(value: 'ARS', child: Text('ARS - \$')),
+                          DropdownMenuItem(value: 'BRL', child: Text('BRL - R\$')),
+                          DropdownMenuItem(value: 'MXN', child: Text('MXN - \$')),
+                          DropdownMenuItem(value: 'USD', child: Text('USD - \$')),
+                          DropdownMenuItem(value: 'EUR', child: Text('EUR - €')),
+                        ],
+                        onChanged: (value) {
+                          if (value != null) {
+                            setState(() => _currency = value);
+                          }
+                        },
+                      ),
                     ],
-                    onChanged: (value) {
-                      if (value != null) {
-                        setState(() => _currency = value);
-                      }
-                    },
                   ),
                 ),
-                const Divider(height: 1),
-                ListTile(
-                  leading: Icon(Icons.receipt_long, color: AppColors.textSecondary),
-                  title: const Text('Mostrar impuestos'),
-                  subtitle: const Text('Incluir IVA en los presupuestos'),
-                  trailing: Switch(
-                    value: _showTaxes,
-                    onChanged: (value) {
-                      setState(() => _showTaxes = value);
-                    },
+                const SizedBox(height: 12),
+                // Mostrar impuestos
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey.shade200),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Mostrar impuestos',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w500,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Incluir IVA en los presupuestos',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Switch(
+                        value: _showTaxes,
+                        onChanged: (value) {
+                          setState(() => _showTaxes = value);
+                        },
+                        activeColor: AppColors.secondary,
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
           ),
 
-          const SizedBox(height: 8),
+          const SizedBox(height: 32),
 
-          // Sección: Datos
+          // Sección: Datos - Minimalista
           _SectionHeader(title: 'Datos'),
-          Card(
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            child: ListTile(
-              leading: Icon(Icons.delete_outline, color: AppColors.error),
-              title: const Text('Borrar presupuestos'),
-              subtitle: const Text('Eliminar todos los presupuestos guardados'),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: InkWell(
               onTap: _deleteAllBudgets,
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.delete_outline,
+                      color: AppColors.error,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Borrar presupuestos',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Eliminar todos los presupuestos guardados',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(
+                      Icons.chevron_right,
+                      color: AppColors.textSecondary,
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
 
-          const SizedBox(height: 8),
+          const SizedBox(height: 32),
 
-          // Sección: App
+          // Sección: App - Minimalista
           _SectionHeader(title: 'App'),
-          Card(
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Column(
               children: [
-                ListTile(
-                  leading: Icon(Icons.info_outline, color: AppColors.textSecondary),
-                  title: const Text('Versión'),
-                  trailing: Text(
-                    AppConstants.appVersion,
-                    style: TextStyle(
-                      color: AppColors.textSecondary,
-                      fontSize: 14,
-                    ),
+                // Versión
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey.shade200),
+                  ),
+                  child: Row(
+                    children: [
+                      Text(
+                        'Versión',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const Spacer(),
+                      Text(
+                        AppConstants.appVersion,
+                        style: TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const Divider(height: 1),
-                ListTile(
-                  leading: Icon(Icons.help_outline, color: AppColors.textSecondary),
-                  title: const Text('Contacto'),
-                  subtitle: const Text('Soporte y ayuda'),
-                  trailing: Icon(Icons.chevron_right, color: AppColors.textSecondary),
+                const SizedBox(height: 12),
+                // Contacto
+                InkWell(
                   onTap: () {
                     // TODO: Navegar a pantalla de contacto
                   },
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey.shade200),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Contacto',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w500,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Soporte y ayuda',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Icon(
+                          Icons.chevron_right,
+                          color: AppColors.textSecondary,
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ],
             ),
           ),
 
-          const SizedBox(height: 24),
+          const SizedBox(height: 32),
 
-          // Botón guardar
+          // Botón guardar - Con identidad de marca
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 24),
             child: ElevatedButton(
               onPressed: _save,
-              child: const Text('Guardar cambios'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.secondary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 0,
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.check_circle, size: 20),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'Guardar cambios',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
 
@@ -453,3 +961,4 @@ class _SectionHeader extends StatelessWidget {
     );
   }
 }
+

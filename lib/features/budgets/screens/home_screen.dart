@@ -6,6 +6,7 @@ import '../widgets/budget_card.dart';
 import 'create_budget_screen.dart';
 import '../../settings/screens/settings_screen.dart';
 import '../../../core/constants/colors.dart';
+import '../../../core/widgets/presuya_logo.dart';
 import '../../../routes/app_routes.dart';
 import '../../../core/utils/formatters.dart';
 
@@ -259,18 +260,41 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Mis Presupuestos'),
+        title: const PresuYaLogo(
+          size: 32,
+          showText: true,
+          textSize: 20,
+          lightBackground: false, // AppBar tiene fondo azul oscuro
+        ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () {
-              Navigator.push(
-                context,
-                AppRoutes.fadeRoute(
-                  const SettingsScreen(),
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    AppRoutes.fadeRoute(
+                      const SettingsScreen(),
+                    ),
+                  );
+                },
+                borderRadius: BorderRadius.circular(20),
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.secondary.withOpacity(0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.settings_outlined,
+                    color: AppColors.secondary,
+                    size: 22,
+                  ),
                 ),
-              );
-            },
+              ),
+            ),
           ),
         ],
       ),
@@ -386,44 +410,110 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                             budgets: allBudgets,
                             onRefresh: _refresh,
                             onStatusChange: (budget) {
-                              final newStatus = budget.status == BudgetStatus.paid
-                                  ? BudgetStatus.pending
-                                  : BudgetStatus.paid;
-                              repo.updateStatus(budget.id, newStatus);
+                              // Solo permitir cambiar de pendiente a cobrado, no al revés
+                              if (budget.status == BudgetStatus.paid) {
+                                // Si ya está cobrado, mostrar mensaje informativo
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.all(6),
+                                          decoration: BoxDecoration(
+                                            color: Colors.white.withOpacity(0.2),
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: const Icon(
+                                            Icons.info_outline,
+                                            color: Colors.white,
+                                            size: 20,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Text(
+                                            'Los presupuestos cobrados no se pueden cambiar',
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 14,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    backgroundColor: Colors.grey.shade700,
+                                    behavior: SnackBarBehavior.floating,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    margin: const EdgeInsets.all(16),
+                                    duration: const Duration(seconds: 2),
+                                    elevation: 4,
+                                  ),
+                                );
+                                return;
+                              }
+                              
+                              // Cambiar de pendiente a cobrado
+                              repo.updateStatus(budget.id, BudgetStatus.paid);
                               _refresh();
                               
-                              // Mostrar feedback
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Row(
-                                    children: [
-                                      Icon(
-                                        newStatus == BudgetStatus.paid
-                                            ? Icons.check_circle
-                                            : Icons.pending_outlined,
-                                        color: Colors.white,
+                              // Mostrar feedback mejorado
+                              Future.delayed(const Duration(milliseconds: 100), () {
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Row(
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.all(6),
+                                            decoration: BoxDecoration(
+                                              color: Colors.white.withOpacity(0.2),
+                                              shape: BoxShape.circle,
+                                            ),
+                                            child: const Icon(
+                                              Icons.check_circle,
+                                              color: Colors.white,
+                                              size: 20,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                const Text(
+                                                  'Presupuesto marcado como cobrado',
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.w600,
+                                                    fontSize: 14,
+                                                  ),
+                                                ),
+                                                Text(
+                                                  '${budget.clientName} - \$${budget.total.toStringAsFixed(0)}',
+                                                  style: TextStyle(
+                                                    fontSize: 12,
+                                                    color: Colors.white.withOpacity(0.9),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
                                       ),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: Text(
-                                          newStatus == BudgetStatus.paid
-                                              ? 'Marcado como cobrado'
-                                              : 'Marcado como pendiente',
-                                        ),
+                                      backgroundColor: AppColors.paid,
+                                      behavior: SnackBarBehavior.floating,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
                                       ),
-                                    ],
-                                  ),
-                                  backgroundColor: newStatus == BudgetStatus.paid
-                                      ? AppColors.paid
-                                      : AppColors.pending,
-                                  behavior: SnackBarBehavior.floating,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  margin: const EdgeInsets.all(16),
-                                  duration: const Duration(seconds: 2),
-                                ),
-                              );
+                                      margin: const EdgeInsets.all(16),
+                                      duration: const Duration(seconds: 3),
+                                      elevation: 4,
+                                    ),
+                                  );
+                                }
+                              });
                             },
                             onDelete: (budget) => _confirmDelete(context, budget),
                           ),
@@ -437,27 +527,62 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                               // Cambiar al tab de Cobrados para ver el resultado
                               _tabController.animateTo(2);
                               
-                              // Mostrar feedback
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: const Row(
-                                    children: [
-                                      Icon(Icons.check_circle, color: Colors.white),
-                                      SizedBox(width: 12),
-                                      Expanded(
-                                        child: Text('Marcado como cobrado'),
+                              // Mostrar feedback mejorado
+                              Future.delayed(const Duration(milliseconds: 100), () {
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Row(
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.all(6),
+                                            decoration: BoxDecoration(
+                                              color: Colors.white.withOpacity(0.2),
+                                              shape: BoxShape.circle,
+                                            ),
+                                            child: const Icon(
+                                              Icons.check_circle,
+                                              color: Colors.white,
+                                              size: 20,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                const Text(
+                                                  'Presupuesto marcado como cobrado',
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.w600,
+                                                    fontSize: 14,
+                                                  ),
+                                                ),
+                                                Text(
+                                                  '${budget.clientName} - \$${budget.total.toStringAsFixed(0)}',
+                                                  style: TextStyle(
+                                                    fontSize: 12,
+                                                    color: Colors.white.withOpacity(0.9),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
                                       ),
-                                    ],
-                                  ),
-                                  backgroundColor: AppColors.paid,
-                                  behavior: SnackBarBehavior.floating,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  margin: const EdgeInsets.all(16),
-                                  duration: const Duration(seconds: 2),
-                                ),
-                              );
+                                      backgroundColor: AppColors.paid,
+                                      behavior: SnackBarBehavior.floating,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      margin: const EdgeInsets.all(16),
+                                      duration: const Duration(seconds: 3),
+                                      elevation: 4,
+                                    ),
+                                  );
+                                }
+                              });
                             },
                             onDelete: (budget) => _confirmDelete(context, budget),
                           ),
@@ -465,31 +590,43 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                             budgets: allBudgets.where((b) => b.status == BudgetStatus.paid).toList(),
                             onRefresh: _refresh,
                             onStatusChange: (budget) {
-                              repo.updateStatus(budget.id, BudgetStatus.pending);
-                              _refresh();
-                              
-                              // Cambiar al tab de Pendientes para ver el resultado
-                              _tabController.animateTo(1);
-                              
-                              // Mostrar feedback
+                              // Los presupuestos cobrados no se pueden cambiar
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: const Row(
+                                  content: Row(
                                     children: [
-                                      Icon(Icons.pending_outlined, color: Colors.white),
-                                      SizedBox(width: 12),
+                                      Container(
+                                        padding: const EdgeInsets.all(6),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white.withOpacity(0.2),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: const Icon(
+                                          Icons.info_outline,
+                                          color: Colors.white,
+                                          size: 20,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
                                       Expanded(
-                                        child: Text('Marcado como pendiente'),
+                                        child: Text(
+                                          'Los presupuestos cobrados no se pueden cambiar',
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 14,
+                                          ),
+                                        ),
                                       ),
                                     ],
                                   ),
-                                  backgroundColor: AppColors.pending,
+                                  backgroundColor: Colors.grey.shade700,
                                   behavior: SnackBarBehavior.floating,
                                   shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
+                                    borderRadius: BorderRadius.circular(12),
                                   ),
                                   margin: const EdgeInsets.all(16),
                                   duration: const Duration(seconds: 2),
+                                  elevation: 4,
                                 ),
                               );
                             },
@@ -501,41 +638,42 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                   ],
                 ),
 
-          // CTA principal - Botón flotante
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.only(bottom: 32),
-                child: ElevatedButton.icon(
-                icon: const Icon(Icons.add),
-                label: const Text('Nuevo Presupuesto'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.secondary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 32,
-                    vertical: 16,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(32),
-                  ),
-                  elevation: 2,
-                  shadowColor: AppColors.secondary.withOpacity(0.3),
-                ),
-                onPressed: () async {
-                  await Navigator.push(
-                    context,
-                    AppRoutes.fadeRoute(
-                      const CreateBudgetScreen(),
+          // CTA principal - Botón flotante (solo cuando hay presupuestos)
+          if (allBudgets.isNotEmpty)
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 32),
+                  child: ElevatedButton.icon(
+                    icon: const Icon(Icons.add),
+                    label: const Text('Nuevo Presupuesto'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.secondary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 32,
+                        vertical: 16,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(32),
+                      ),
+                      elevation: 2,
+                      shadowColor: AppColors.secondary.withOpacity(0.3),
                     ),
-                  );
-                  _refresh();
-                },
-              ),
+                    onPressed: () async {
+                      await Navigator.push(
+                        context,
+                        AppRoutes.fadeRoute(
+                          const CreateBudgetScreen(),
+                        ),
+                      );
+                      _refresh();
+                    },
+                  ),
+                ),
               ),
             ),
-          ),
         ],
       ),
     );
@@ -549,19 +687,31 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            // Icono de PresuYa - Solo el checkmark verde (como icono de app)
             Container(
+              width: 180,
+              height: 180,
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: AppColors.secondary.withOpacity(0.1),
-                shape: BoxShape.circle,
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(40), // Rounded square (squircle)
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 25,
+                    offset: const Offset(0, 6),
+                    spreadRadius: 0,
+                  ),
+                ],
               ),
-              child: Icon(
-                Icons.receipt_long,
-                size: 64,
-                color: AppColors.secondary,
+              child: Center(
+                child: PresuYaLogo.iconOnly(
+                  size: 132,
+                  lightBackground: true,
+                ),
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 32),
             Text(
               'Todavía no creaste presupuestos',
               style: TextStyle(

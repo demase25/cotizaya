@@ -1,5 +1,5 @@
 name: cotiza_ya
-description: "Cotiza YA! - Aplicación de cotizaciones rápida y eficiente."
+description: "PresuYa - Aplicación de cotizaciones rápida y eficiente."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -51,6 +51,9 @@ dependencies:
   # Image picker
   image_picker: ^1.0.7
   path_provider: ^2.1.2
+  
+  # Share files
+  share_plus: ^7.2.1
 
 dev_dependencies:
   flutter_test:
@@ -62,6 +65,9 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+  
+  # Icon launcher generator
+  flutter_launcher_icons: ^0.13.1
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -104,3 +110,12 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+# Flutter Launcher Icons configuration
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon/app_icon.png"
+  min_sdk_android: 21 # android min sdk min:16, default 21
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/icon/app_icon_foreground.png"

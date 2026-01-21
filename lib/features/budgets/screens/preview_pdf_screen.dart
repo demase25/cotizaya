@@ -1,6 +1,10 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:printing/printing.dart';
 import 'package:uuid/uuid.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as path;
 import '../../pdf/services/pdf_generator_service.dart';
 import '../models/budget_item_model.dart';
 import '../models/budget_model.dart';
@@ -163,6 +167,11 @@ class _PreviewPdfScreenState extends State<PreviewPdfScreen> {
                               }
                             },
                             padding: EdgeInsets.zero,
+                            allowPrinting: true,
+                            allowSharing: false,
+                            canChangePageFormat: false,
+                            canChangeOrientation: false,
+                            canDebug: false,
                           ),
                         ),
                       ),
@@ -192,15 +201,82 @@ class _PreviewPdfScreenState extends State<PreviewPdfScreen> {
                 icon: const Icon(Icons.share, size: 20),
                 label: const Text('Enviar por WhatsApp'),
                 onPressed: () async {
-                  await Printing.sharePdf(
-                    bytes: await (await PdfGeneratorService.generateBudgetPdf(
+                  try {
+                    // Generar el PDF
+                    final pdf = await PdfGeneratorService.generateBudgetPdf(
                       clientName: widget.clientName,
                       items: widget.items,
                       total: widget.total,
-                    ))
-                        .save(),
-                    filename: 'presupuesto.pdf',
-                  );
+                    );
+                    final pdfBytes = await pdf.save();
+
+                    // Guardar temporalmente el PDF
+                    final tempDir = await getTemporaryDirectory();
+                    final fileName = 'presupuesto_${widget.clientName.replaceAll(' ', '_')}.pdf';
+                    final filePath = path.join(tempDir.path, fileName);
+                    final file = File(filePath);
+                    await file.writeAsBytes(pdfBytes);
+
+                    // Abrir WhatsApp directamente usando método nativo
+                    const platform = MethodChannel('com.cotiza_ya/whatsapp');
+                    try {
+                      await platform.invokeMethod('shareToWhatsApp', {
+                        'filePath': filePath,
+                        'text': 'Presupuesto para ${widget.clientName}',
+                      });
+                    } catch (e) {
+                      // Si falla (por ejemplo en iOS o si WhatsApp no está instalado), mostrar error
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Row(
+                              children: [
+                                const Icon(Icons.error_outline, color: Colors.white, size: 20),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    e.toString().contains('WHATSAPP_NOT_INSTALLED')
+                                        ? 'WhatsApp no está instalado en tu dispositivo'
+                                        : 'Error al abrir WhatsApp: ${e.toString()}',
+                                  ),
+                                ),
+                              ],
+                            ),
+                            backgroundColor: AppColors.error,
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            margin: const EdgeInsets.all(16),
+                            duration: const Duration(seconds: 3),
+                          ),
+                        );
+                      }
+                    }
+                  } catch (e) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Row(
+                            children: [
+                              const Icon(Icons.error_outline, color: Colors.white, size: 20),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text('Error al generar PDF: ${e.toString()}'),
+                              ),
+                            ],
+                          ),
+                          backgroundColor: AppColors.error,
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          margin: const EdgeInsets.all(16),
+                          duration: const Duration(seconds: 3),
+                        ),
+                      );
+                    }
+                  }
                 },
               ),
             ),
@@ -208,65 +284,134 @@ class _PreviewPdfScreenState extends State<PreviewPdfScreen> {
             SizedBox(
               width: double.infinity,
               child: OutlinedButton.icon(
-                icon: const Icon(Icons.check_circle_outline, size: 20),
-                label: const Text('Marcar como Cobrado'),
+                icon: const Icon(Icons.save_outlined, size: 20),
+                label: const Text('Guardar PDF'),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.paid,
-                  side: BorderSide(color: AppColors.paid),
+                  foregroundColor: AppColors.primary,
+                  side: BorderSide(color: AppColors.primary),
                   padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
                 onPressed: () async {
-                  // Si ya existe un presupuesto, actualizar su estado
-                  if (widget.budgetId != null) {
-                    _repo.updateStatus(widget.budgetId!, BudgetStatus.paid);
-                  } else {
-                    // Si no existe, crear uno nuevo como cobrado
-                    final budget = BudgetModel(
-                      id: const Uuid().v4(),
-                      clientName: widget.clientName.isEmpty
-                          ? 'Consumidor Final'
-                          : widget.clientName,
+                  try {
+                    // Generar el PDF
+                    final pdf = await PdfGeneratorService.generateBudgetPdf(
+                      clientName: widget.clientName,
+                      items: widget.items,
                       total: widget.total,
-                      status: BudgetStatus.paid,
-                      date: DateTime.now(),
                     );
-                    _repo.save(budget);
-                  }
+                    final pdfBytes = await pdf.save();
 
-                  // Mostrar mensaje de confirmación
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Row(
-                          children: [
-                            const Icon(
-                              Icons.check_circle,
-                              color: Colors.white,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                widget.budgetId != null
-                                    ? 'Presupuesto marcado como cobrado'
-                                    : 'Presupuesto guardado como cobrado',
+                    // Obtener el directorio de descargas
+                    final directory = await getApplicationDocumentsDirectory();
+                    final fileName = 'presupuesto_${widget.clientName.replaceAll(' ', '_')}_${DateTime.now().millisecondsSinceEpoch}.pdf';
+                    final filePath = path.join(directory.path, fileName);
+                    
+                    // Guardar el archivo
+                    final file = File(filePath);
+                    await file.writeAsBytes(pdfBytes);
+
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Row(
+                            children: [
+                              const Icon(Icons.check_circle, color: Colors.white, size: 20),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text('PDF guardado: $fileName'),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
+                          backgroundColor: AppColors.secondary,
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          margin: const EdgeInsets.all(16),
+                          duration: const Duration(seconds: 3),
                         ),
-                        backgroundColor: AppColors.paid,
-                        behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                      );
+                    }
+                  } catch (e) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Row(
+                            children: [
+                              const Icon(Icons.error_outline, color: Colors.white, size: 20),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text('Error al guardar: ${e.toString()}'),
+                              ),
+                            ],
+                          ),
+                          backgroundColor: AppColors.error,
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          margin: const EdgeInsets.all(16),
+                          duration: const Duration(seconds: 3),
                         ),
-                        margin: const EdgeInsets.all(16),
-                        duration: const Duration(seconds: 2),
-                      ),
-                    );
+                      );
+                    }
                   }
+                },
+              ),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                icon: const Icon(Icons.share, size: 20),
+                label: const Text('Compartir'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 2,
+                ),
+                onPressed: () async {
+                  try {
+                    // Generar el PDF
+                    final pdf = await PdfGeneratorService.generateBudgetPdf(
+                      clientName: widget.clientName,
+                      items: widget.items,
+                      total: widget.total,
+                    );
+                    final pdfBytes = await pdf.save();
 
-                  // Volver a la pantalla anterior
-                  if (mounted) {
-                    Navigator.pop(context);
+                    // Compartir usando el diálogo nativo del sistema
+                    await Printing.sharePdf(
+                      bytes: pdfBytes,
+                      filename: 'presupuesto_${widget.clientName.replaceAll(' ', '_')}.pdf',
+                    );
+                  } catch (e) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Row(
+                            children: [
+                              const Icon(Icons.error_outline, color: Colors.white, size: 20),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text('Error al compartir: ${e.toString()}'),
+                              ),
+                            ],
+                          ),
+                          backgroundColor: AppColors.error,
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          margin: const EdgeInsets.all(16),
+                          duration: const Duration(seconds: 3),
+                        ),
+                      );
+                    }
                   }
                 },
               ),
