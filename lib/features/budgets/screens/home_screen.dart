@@ -260,15 +260,20 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const PresuYaLogo(
-          size: 32,
-          showText: true,
-          textSize: 20,
-          lightBackground: false, // AppBar tiene fondo azul oscuro
+        toolbarHeight: 52,
+        titleSpacing: 16,
+        title: const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 8),
+          child: PresuYaLogo(
+            size: 28,
+            showText: true,
+            textSize: 18,
+            lightBackground: false,
+          ),
         ),
         actions: [
           Padding(
-            padding: const EdgeInsets.only(right: 8),
+            padding: const EdgeInsets.only(right: 4),
             child: Material(
               color: Colors.transparent,
               child: InkWell(
@@ -282,7 +287,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 },
                 borderRadius: BorderRadius.circular(20),
                 child: Container(
-                  padding: const EdgeInsets.all(8),
+                  padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
                     color: AppColors.secondary.withOpacity(0.15),
                     shape: BoxShape.circle,
@@ -290,7 +295,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                   child: Icon(
                     Icons.settings_outlined,
                     color: AppColors.secondary,
-                    size: 22,
+                    size: 18,
                   ),
                 ),
               ),

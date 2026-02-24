@@ -34,6 +34,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _businessController.text = profile.businessName;
     _phoneController.text = profile.phone;
     _logoPath = profile.logoPath;
+    _currency = profile.currency;
+    _showTaxes = profile.showTaxes;
   }
 
   @override
@@ -209,6 +211,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       businessName: _businessController.text,
       phone: _phoneController.text,
       logoPath: _logoPath,
+      currency: _currency,
+      showTaxes: _showTaxes,
     );
 
     _repo.saveProfile(profile);
@@ -314,96 +318,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ],
       ),
       body: ListView(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
         children: [
-          // Sección: Empresa - Diseño minimalista
-          _SectionHeader(title: 'Empresa'),
-          
-          // Nombre del negocio - Simple y limpio
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
+          // Logo primero — protagonista
+          _SectionCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Nombre del negocio',
+                  'Tu logo',
                   style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.textSecondary,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.primary,
+                    letterSpacing: 0.3,
                   ),
                 ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: _businessController,
-                  decoration: InputDecoration(
-                    hintText: 'Ej: PresuYa Servicios',
-                    filled: true,
-                    fillColor: Colors.white,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.grey.shade200),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.grey.shade200),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: AppColors.primary, width: 2),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 16,
-                    ),
-                  ),
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 32),
-
-          // Logo - Protagonista, sin cajas innecesarias
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Logo de tu negocio',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Se usará en tus presupuestos PDF',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: AppColors.textSecondary.withOpacity(0.7),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                // Área de logo - Minimalista
+                const SizedBox(height: 20),
                 InkWell(
                   onTap: _showImageSourceDialog,
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(20),
                   child: Container(
                     width: double.infinity,
-                    height: 180,
+                    height: 220,
                     decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
+                      color: AppColors.background,
+                      borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                        color: _logoPath != null 
-                            ? AppColors.secondary.withOpacity(0.3)
+                        color: _logoPath != null
+                            ? AppColors.secondary.withOpacity(0.35)
                             : Colors.grey.shade200,
                         width: 1.5,
                       ),
@@ -413,7 +356,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             children: [
                               Center(
                                 child: Padding(
-                                  padding: const EdgeInsets.all(24),
+                                  padding: const EdgeInsets.all(32),
                                   child: Image.file(
                                     File(_logoPath!),
                                     fit: BoxFit.contain,
@@ -428,8 +371,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 ),
                               ),
                               Positioned(
-                                top: 12,
-                                right: 12,
+                                top: 14,
+                                right: 14,
                                 child: Material(
                                   color: Colors.white,
                                   borderRadius: BorderRadius.circular(20),
@@ -438,10 +381,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     onTap: _showImageSourceDialog,
                                     borderRadius: BorderRadius.circular(20),
                                     child: Container(
-                                      padding: const EdgeInsets.all(8),
+                                      padding: const EdgeInsets.all(10),
                                       child: Icon(
                                         Icons.edit_outlined,
-                                        size: 18,
+                                        size: 20,
                                         color: AppColors.primary,
                                       ),
                                     ),
@@ -455,32 +398,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Container(
-                                  width: 64,
-                                  height: 64,
+                                  width: 72,
+                                  height: 72,
                                   decoration: BoxDecoration(
-                                    color: AppColors.secondary.withOpacity(0.1),
+                                    color: AppColors.secondary.withOpacity(0.12),
                                     shape: BoxShape.circle,
                                   ),
                                   child: Icon(
                                     Icons.add_photo_alternate_outlined,
-                                    size: 32,
+                                    size: 36,
                                     color: AppColors.secondary,
                                   ),
                                 ),
-                                const SizedBox(height: 12),
+                                const SizedBox(height: 16),
                                 Text(
-                                  'Toca para agregar logo',
+                                  'Toca para agregar',
                                   style: TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w500,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
                                     color: AppColors.textPrimary,
                                   ),
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  'Galería o Cámara',
+                                  'Galería o cámara',
                                   style: TextStyle(
-                                    fontSize: 12,
+                                    fontSize: 13,
                                     color: AppColors.textSecondary,
                                   ),
                                 ),
@@ -489,33 +432,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ),
                   ),
                 ),
-                // Recomendaciones discretas (tooltip o texto pequeño)
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Icon(
-                      Icons.info_outline,
-                      size: 14,
-                      color: AppColors.textSecondary.withOpacity(0.6),
-                    ),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(
-                        'Recomendado: Cuadrado (1:1), 200x200px mínimo, PNG/JPG, fondo transparente',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: AppColors.textSecondary.withOpacity(0.6),
-                          height: 1.3,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                // Botón eliminar logo - Más visible y definido
                 if (_logoPath != null) ...[
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 16),
                   Center(
-                    child: OutlinedButton.icon(
+                    child: TextButton.icon(
                       onPressed: () {
                         showDialog(
                           context: context,
@@ -523,15 +443,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(16),
                             ),
-                            title: const Text(
-                              'Eliminar logo',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
+                            title: const Text('Eliminar logo'),
                             content: const Text(
-                              '¿Quieres quitar el logo de tu negocio? Se eliminará de todos los presupuestos futuros.',
+                              '¿Quieres quitar el logo? No se verá en presupuestos nuevos.',
                               style: TextStyle(fontSize: 14),
                             ),
                             actions: [
@@ -545,17 +459,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   Navigator.pop(context);
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
-                                      content: Row(
+                                      content: const Row(
                                         children: [
-                                          Icon(
-                                            Icons.check_circle,
-                                            color: Colors.white,
-                                            size: 20,
-                                          ),
-                                          const SizedBox(width: 12),
-                                          const Expanded(
-                                            child: Text('Logo eliminado'),
-                                          ),
+                                          Icon(Icons.check_circle, color: Colors.white, size: 20),
+                                          SizedBox(width: 12),
+                                          Expanded(child: Text('Logo eliminado')),
                                         ],
                                       ),
                                       backgroundColor: AppColors.secondary,
@@ -578,30 +486,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ),
                         );
                       },
-                      icon: Icon(
-                        Icons.delete_outline,
-                        size: 18,
-                        color: AppColors.error,
-                      ),
+                      icon: Icon(Icons.delete_outline, size: 18, color: AppColors.error),
                       label: Text(
                         'Quitar logo',
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
                           color: AppColors.error,
-                        ),
-                      ),
-                      style: OutlinedButton.styleFrom(
-                        side: BorderSide(
-                          color: AppColors.error,
-                          width: 1.5,
-                        ),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 12,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
                         ),
                       ),
                     ),
@@ -611,23 +502,54 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
 
-          const SizedBox(height: 32),
+          const SizedBox(height: 24),
 
-          // Teléfono - Simple y limpio
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
+          // Empresa — tarjeta suave
+          _SectionCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Teléfono / WhatsApp',
+                  'Nombre',
                   style: TextStyle(
                     fontSize: 13,
-                    fontWeight: FontWeight.w500,
+                    fontWeight: FontWeight.w600,
                     color: AppColors.textSecondary,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: _businessController,
+                  decoration: InputDecoration(
+                    hintText: 'Ej: PresuYa Servicios',
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.grey.shade200),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.grey.shade200),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: AppColors.primary, width: 2),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  ),
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  'Teléfono / WhatsApp',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 10),
                 TextField(
                   controller: _phoneController,
                   keyboardType: TextInputType.phone,
@@ -647,317 +569,184 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide(color: AppColors.primary, width: 2),
                     ),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 16,
-                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   ),
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                  ),
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
                 ),
               ],
             ),
           ),
 
-          const SizedBox(height: 32),
+          const SizedBox(height: 24),
 
-          // Sección: PDF - Minimalista
-          _SectionHeader(title: 'PDF'),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
+          // PDF — tarjeta suave
+          _SectionCard(
             child: Column(
               children: [
-                // Moneda
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey.shade200),
-                  ),
-                  child: Row(
-                    children: [
-                      Text(
-                        'Moneda',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w500,
-                          color: AppColors.textPrimary,
-                        ),
+                Row(
+                  children: [
+                    Text(
+                      'Moneda',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
                       ),
-                      const Spacer(),
-                      DropdownButton<String>(
-                        value: _currency,
-                        underline: const SizedBox(),
-                        items: const [
-                          DropdownMenuItem(value: 'ARS', child: Text('ARS - \$')),
-                          DropdownMenuItem(value: 'BRL', child: Text('BRL - R\$')),
-                          DropdownMenuItem(value: 'MXN', child: Text('MXN - \$')),
-                          DropdownMenuItem(value: 'USD', child: Text('USD - \$')),
-                          DropdownMenuItem(value: 'EUR', child: Text('EUR - €')),
-                        ],
-                        onChanged: (value) {
-                          if (value != null) {
-                            setState(() => _currency = value);
-                          }
-                        },
-                      ),
-                    ],
-                  ),
+                    ),
+                    const Spacer(),
+                    DropdownButton<String>(
+                      value: _currency,
+                      underline: const SizedBox(),
+                      items: const [
+                        DropdownMenuItem(value: 'ARS', child: Text('ARS - \$')),
+                        DropdownMenuItem(value: 'BRL', child: Text('BRL - R\$')),
+                        DropdownMenuItem(value: 'MXN', child: Text('MXN - \$')),
+                        DropdownMenuItem(value: 'USD', child: Text('USD - \$')),
+                        DropdownMenuItem(value: 'EUR', child: Text('EUR - €')),
+                      ],
+                      onChanged: (value) {
+                        if (value != null) setState(() => _currency = value);
+                      },
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 12),
-                // Mostrar impuestos
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey.shade200),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Mostrar impuestos',
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w500,
-                                color: AppColors.textPrimary,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Incluir IVA en los presupuestos',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: AppColors.textSecondary,
-                              ),
-                            ),
-                          ],
-                        ),
+                Divider(height: 28, color: Colors.grey.shade200),
+                Row(
+                  children: [
+                    Text(
+                      'Impuestos en PDF',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
                       ),
-                      Switch(
-                        value: _showTaxes,
-                        onChanged: (value) {
-                          setState(() => _showTaxes = value);
-                        },
-                        activeColor: AppColors.secondary,
-                      ),
-                    ],
-                  ),
+                    ),
+                    const Spacer(),
+                    Switch(
+                      value: _showTaxes,
+                      onChanged: (value) => setState(() => _showTaxes = value),
+                      activeColor: AppColors.secondary,
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
 
-          const SizedBox(height: 32),
+          const SizedBox(height: 24),
 
-          // Sección: Datos - Minimalista
-          _SectionHeader(title: 'Datos'),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
+          // Datos — tarjeta suave
+          _SectionCard(
             child: InkWell(
               onTap: _deleteAllBudgets,
               borderRadius: BorderRadius.circular(12),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey.shade200),
-                ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
                 child: Row(
                   children: [
-                    Icon(
-                      Icons.delete_outline,
-                      color: AppColors.error,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 12),
+                    Icon(Icons.delete_outline, color: AppColors.error, size: 22),
+                    const SizedBox(width: 14),
                     Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Borrar presupuestos',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w500,
-                              color: AppColors.textPrimary,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Eliminar todos los presupuestos guardados',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                        ],
+                      child: Text(
+                        'Borrar todos los presupuestos',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
+                        ),
                       ),
                     ),
-                    Icon(
-                      Icons.chevron_right,
-                      color: AppColors.textSecondary,
-                    ),
+                    Icon(Icons.chevron_right, color: AppColors.textSecondary, size: 22),
                   ],
                 ),
               ),
             ),
           ),
 
-          const SizedBox(height: 32),
+          const SizedBox(height: 24),
 
-          // Sección: App - Minimalista
-          _SectionHeader(title: 'App'),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Column(
+          // App — tarjeta suave (solo versión)
+          _SectionCard(
+            child: Row(
               children: [
-                // Versión
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey.shade200),
-                  ),
-                  child: Row(
-                    children: [
-                      Text(
-                        'Versión',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w500,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      const Spacer(),
-                      Text(
-                        AppConstants.appVersion,
-                        style: TextStyle(
-                          color: AppColors.textSecondary,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ],
+                Text(
+                  'Versión',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
                   ),
                 ),
-                const SizedBox(height: 12),
-                // Contacto
-                InkWell(
-                  onTap: () {
-                    // TODO: Navegar a pantalla de contacto
-                  },
-                  borderRadius: BorderRadius.circular(12),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey.shade200),
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Contacto',
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w500,
-                                  color: AppColors.textPrimary,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Soporte y ayuda',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: AppColors.textSecondary,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Icon(
-                          Icons.chevron_right,
-                          color: AppColors.textSecondary,
-                        ),
-                      ],
-                    ),
+                const Spacer(),
+                Text(
+                  AppConstants.appVersion,
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 14,
                   ),
                 ),
               ],
             ),
           ),
 
-          const SizedBox(height: 32),
+          const SizedBox(height: 28),
 
-          // Botón guardar - Con identidad de marca
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: ElevatedButton(
-              onPressed: _save,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.secondary,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+          // Guardar
+          ElevatedButton(
+            onPressed: _save,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.secondary,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              elevation: 0,
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.check_circle, size: 20),
+                const SizedBox(width: 8),
+                const Text(
+                  'Guardar cambios',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                 ),
-                elevation: 0,
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.check_circle, size: 20),
-                  const SizedBox(width: 8),
-                  const Text(
-                    'Guardar cambios',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
+              ],
             ),
           ),
 
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
         ],
       ),
     );
   }
 }
 
-class _SectionHeader extends StatelessWidget {
-  final String title;
+// Tarjeta suave para agrupar secciones
+class _SectionCard extends StatelessWidget {
+  final Widget child;
 
-  const _SectionHeader({required this.title});
+  const _SectionCard({required this.child});
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
-      child: Text(
-        title,
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-          color: AppColors.textSecondary,
-          letterSpacing: 0.5,
-        ),
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.grey.shade100),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
+      child: child,
     );
   }
 }

@@ -1,4 +1,4 @@
-package com.example.cotizaya
+package com.presuya.app
 
 import android.content.Intent
 import android.net.Uri

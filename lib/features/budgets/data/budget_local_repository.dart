@@ -1,8 +1,62 @@
 import 'package:hive/hive.dart';
 import '../models/budget_model.dart';
+import '../models/budget_item_model.dart';
 
 class BudgetLocalRepository {
   final Box box = Hive.box('budgetsBox');
+  static const String _recentItemsKey = 'recent_items';
+  static const int _maxRecentItems = 25;
+
+  /// Ítems (productos/servicios) usados recientemente para sugerir al añadir.
+  List<BudgetItemModel> getRecentItems() {
+    try {
+      final raw = box.get(_recentItemsKey);
+      if (raw == null || raw is! List) return [];
+      final list = raw as List;
+      return list
+          .map((e) {
+            if (e is! Map) return null;
+            final m = Map<String, dynamic>.from(e as Map);
+            final desc = m['description'] as String? ?? '';
+            final price = (m['price'] as num?)?.toDouble() ?? 0.0;
+            if (desc.isEmpty) return null;
+            return BudgetItemModel(description: desc, price: price);
+          })
+          .whereType<BudgetItemModel>()
+          .toList();
+    } catch (e) {
+      return [];
+    }
+  }
+
+  /// Registra un ítem como usado (lo pone al inicio; si ya existe, actualiza precio y orden).
+  void addRecentItem(String description, double price) {
+    final desc = description.trim();
+    if (desc.isEmpty) return;
+    final current = getRecentItems();
+    final updated = [
+      BudgetItemModel(description: desc, price: price),
+      ...current.where((i) => i.description.trim().toLowerCase() != desc.toLowerCase()),
+    ];
+    final toSave = updated.take(_maxRecentItems).map((i) => {
+      'description': i.description,
+      'price': i.price,
+    }).toList();
+    box.put(_recentItemsKey, toSave);
+  }
+
+  /// Nombres de clientes usados en presupuestos (únicos, más recientes primero).
+  List<String> getRecentClientNames() {
+    final budgets = getAll();
+    final seen = <String>{};
+    final result = <String>[];
+    for (final b in budgets) {
+      final name = (b.clientName).trim();
+      if (name.isEmpty) continue;
+      if (seen.add(name)) result.add(name);
+    }
+    return result;
+  }
 
   List<BudgetModel> getAll() {
     try {
@@ -10,8 +64,7 @@ class BudgetLocalRepository {
       
       // Iterar sobre todas las claves para asegurar que solo obtenemos presupuestos válidos
       for (var key in box.keys) {
-        // Ignorar la clave de user_profile si existe
-        if (key == 'user_profile') continue;
+        if (key == 'user_profile' || key == _recentItemsKey) continue;
         
         try {
           final data = box.get(key);

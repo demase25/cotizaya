@@ -16,13 +16,14 @@ class CreateBudgetScreen extends StatefulWidget {
 }
 
 class _CreateBudgetScreenState extends State<CreateBudgetScreen> {
-  final _clientController = TextEditingController();
   final _itemDescController = TextEditingController();
   final _itemPriceController = TextEditingController();
   final _repo = BudgetLocalRepository();
 
   final List<BudgetItemModel> _items = [];
-  String? _savedBudgetId; // ID del presupuesto guardado
+  String? _savedBudgetId;
+  /// Referencia al controller del campo Cliente (autocomplete) para leer el valor al guardar.
+  TextEditingController? _clientFieldController;
 
   double get total =>
       _items.fold(0, (sum, item) => sum + item.price);
@@ -31,57 +32,123 @@ class _CreateBudgetScreenState extends State<CreateBudgetScreen> {
     if (_itemDescController.text.isEmpty ||
         _itemPriceController.text.isEmpty) return;
 
+    final desc = _itemDescController.text.trim();
+    final price = double.tryParse(_itemPriceController.text.replaceAll(',', '.')) ?? 0.0;
+
     setState(() {
-      _items.add(
-        BudgetItemModel(
-          description: _itemDescController.text,
-          price: double.parse(_itemPriceController.text),
-        ),
-      );
+      _items.add(BudgetItemModel(description: desc, price: price));
       _itemDescController.clear();
       _itemPriceController.clear();
     });
+    _repo.addRecentItem(desc, price);
+  }
+
+  void _addItemFromHistory(BudgetItemModel item, BuildContext dialogContext) {
+    setState(() {
+      _items.add(BudgetItemModel(description: item.description, price: item.price));
+    });
+    _repo.addRecentItem(item.description, item.price);
+    Navigator.pop(dialogContext);
   }
 
   @override
   void dispose() {
-    _clientController.dispose();
     _itemDescController.dispose();
     _itemPriceController.dispose();
     super.dispose();
   }
 
+  String get _clientName {
+    final t = _clientFieldController?.text.trim() ?? '';
+    return t.isEmpty ? 'Consumidor Final' : t;
+  }
+
   void _showAddItemDialog() {
     _itemDescController.clear();
     _itemPriceController.clear();
-    
+    final recentItems = _repo.getRecentItems();
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        title: Row(
-          children: [
-            Icon(
-              Icons.add_circle,
-              color: AppColors.primary,
-              size: 24,
-            ),
-            const SizedBox(width: 12),
-            const Text(
-              'Añadir ítem',
-              style: TextStyle(
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.w600,
+      builder: (dialogContext) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Row(
+            children: [
+              Icon(
+                Icons.add_circle,
+                color: AppColors.primary,
+                size: 24,
               ),
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
+              const SizedBox(width: 12),
+              const Text(
+                'Añadir ítem',
+                style: TextStyle(
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (recentItems.isNotEmpty) ...[
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.history,
+                        size: 18,
+                        color: AppColors.textSecondary,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Usados recientemente',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: recentItems.take(12).map((item) {
+                      return ActionChip(
+                        avatar: Icon(
+                          Icons.add,
+                          size: 18,
+                          color: AppColors.secondary,
+                        ),
+                        label: Text(
+                          '${item.description}  ·  \$${item.price.toStringAsFixed(0)}',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        onPressed: () => _addItemFromHistory(item, dialogContext),
+                        backgroundColor: AppColors.secondary.withOpacity(0.1),
+                        side: BorderSide(
+                          color: AppColors.secondary.withOpacity(0.3),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 20),
+                  Divider(height: 1, color: Colors.grey.shade200),
+                  const SizedBox(height: 16),
+                ],
+                TextField(
               controller: _itemDescController,
               style: const TextStyle(color: AppColors.textPrimary),
               autofocus: true,
@@ -151,11 +218,12 @@ class _CreateBudgetScreenState extends State<CreateBudgetScreen> {
                 ),
               ),
             ),
-          ],
-        ),
+              ],
+            ),
+          ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             style: TextButton.styleFrom(
               foregroundColor: AppColors.textSecondary,
             ),
@@ -166,7 +234,7 @@ class _CreateBudgetScreenState extends State<CreateBudgetScreen> {
               if (_itemDescController.text.isNotEmpty &&
                   _itemPriceController.text.isNotEmpty) {
                 _addItem();
-                Navigator.pop(context);
+                Navigator.pop(dialogContext);
               }
             },
             style: ElevatedButton.styleFrom(
@@ -179,7 +247,8 @@ class _CreateBudgetScreenState extends State<CreateBudgetScreen> {
             child: const Text('Agregar'),
           ),
         ],
-      ),
+      );
+      }
     );
   }
 
@@ -208,67 +277,150 @@ class _CreateBudgetScreenState extends State<CreateBudgetScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Campo Cliente
+                  // Campo Cliente — autocompletado con clientes recurrentes
                   Text(
                     'Cliente',
                     style: TextStyle(
-                      fontSize: 14,
-                      color: AppColors.textSecondary,
-                      fontWeight: FontWeight.w600,
+                      fontSize: 15,
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.2,
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _clientController,
-                    style: const TextStyle(
-                      color: AppColors.textPrimary,
-                      fontSize: 16,
-                    ),
-                    decoration: InputDecoration(
-                      hintText: 'Ej: Carlos Gómez',
-                      hintStyle: TextStyle(
-                        color: Colors.grey.shade400,
-                      ),
-                      filled: true,
-                      fillColor: Colors.white,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.grey.shade300),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.grey.shade300),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(
-                          color: AppColors.primary,
-                          width: 2,
+                  const SizedBox(height: 10),
+                  Autocomplete<String>(
+                    optionsBuilder: (value) {
+                      final query = value.text.trim().toLowerCase();
+                      final names = _repo.getRecentClientNames();
+                      if (query.isEmpty) return names.take(10);
+                      return names.where((name) =>
+                          name.toLowerCase().contains(query)).take(10);
+                    },
+                    displayStringForOption: (option) => option,
+                    onSelected: (value) {
+                      _clientFieldController?.text = value;
+                    },
+                    fieldViewBuilder: (
+                      context,
+                      textEditingController,
+                      focusNode,
+                      onFieldSubmitted,
+                    ) {
+                      _clientFieldController = textEditingController;
+                      return TextField(
+                        controller: textEditingController,
+                        focusNode: focusNode,
+                        onEditingComplete: onFieldSubmitted,
+                        style: const TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w500,
                         ),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 16,
-                      ),
-                    ),
+                        decoration: InputDecoration(
+                          hintText: 'Escribe o elige un cliente',
+                          hintStyle: TextStyle(
+                            color: Colors.grey.shade400,
+                            fontWeight: FontWeight.w400,
+                          ),
+                          filled: true,
+                          fillColor: Colors.white,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: AppColors.primary.withOpacity(0.3)),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: AppColors.primary.withOpacity(0.25)),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(
+                              color: AppColors.primary,
+                              width: 2,
+                            ),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 18,
+                            vertical: 18,
+                          ),
+                        ),
+                      );
+                    },
+                    optionsViewBuilder: (context, onSelected, options) {
+                      return Align(
+                        alignment: Alignment.topLeft,
+                        child: Material(
+                          elevation: 4,
+                          borderRadius: BorderRadius.circular(12),
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxHeight: 240),
+                            child: ListView.builder(
+                              padding: EdgeInsets.zero,
+                              shrinkWrap: true,
+                              itemCount: options.length,
+                              itemBuilder: (context, index) {
+                                final option = options.elementAt(index);
+                                return InkWell(
+                                  onTap: () => onSelected(option),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 18,
+                                      vertical: 14,
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          Icons.person_outline,
+                                          size: 20,
+                                          color: AppColors.primary.withOpacity(0.7),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Text(
+                                            option,
+                                            style: const TextStyle(
+                                              fontSize: 16,
+                                              color: AppColors.textPrimary,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                      );
+                    },
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 28),
 
-                  // Botón Añadir ítem
+                  // Añadir ítem — CTA verde suave
                   InkWell(
                     onTap: _showAddItemDialog,
                     borderRadius: BorderRadius.circular(12),
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 14,
+                        horizontal: 18,
+                        vertical: 16,
                       ),
                       decoration: BoxDecoration(
-                        color: AppColors.primary.withOpacity(0.05),
+                        color: AppColors.secondary.withOpacity(0.12),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: AppColors.primary.withOpacity(0.2),
+                          color: AppColors.secondary.withOpacity(0.35),
+                          width: 1.5,
                         ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.secondary.withOpacity(0.08),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -277,24 +429,24 @@ class _CreateBudgetScreenState extends State<CreateBudgetScreen> {
                             children: [
                               Icon(
                                 Icons.add_circle_outline,
-                                color: AppColors.primary,
-                                size: 20,
+                                color: AppColors.secondary,
+                                size: 22,
                               ),
                               const SizedBox(width: 12),
                               Text(
                                 'Añadir ítem',
                                 style: TextStyle(
                                   fontSize: 16,
-                                  color: AppColors.primary,
-                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.secondaryDark,
+                                  fontWeight: FontWeight.w700,
                                 ),
                               ),
                             ],
                           ),
                           Icon(
                             Icons.arrow_forward_ios,
-                            size: 16,
-                            color: AppColors.primary.withOpacity(0.6),
+                            size: 14,
+                            color: AppColors.secondary.withOpacity(0.7),
                           ),
                         ],
                       ),
@@ -404,36 +556,53 @@ class _CreateBudgetScreenState extends State<CreateBudgetScreen> {
                       );
                     }).toList(),
 
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 24),
 
-                  // Total
+                  // Total — flotante, siempre importante (incluso $0)
                   Container(
-                    margin: const EdgeInsets.only(top: 8),
-                    padding: const EdgeInsets.all(20),
+                    margin: const EdgeInsets.only(top: 12, bottom: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 22),
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withOpacity(0.05),
-                      borderRadius: BorderRadius.circular(12),
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
                       border: Border.all(
                         color: AppColors.primary.withOpacity(0.2),
+                        width: 1.5,
                       ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primary.withOpacity(0.08),
+                          blurRadius: 16,
+                          offset: const Offset(0, 4),
+                        ),
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.04),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.baseline,
+                      textBaseline: TextBaseline.alphabetic,
                       children: [
                         Text(
-                          'Total:',
+                          'Total',
                           style: TextStyle(
-                            fontSize: 18,
-                            color: AppColors.textPrimary,
+                            fontSize: 16,
+                            color: AppColors.textSecondary,
                             fontWeight: FontWeight.w600,
+                            letterSpacing: 0.3,
                           ),
                         ),
                         Text(
                           '\$${total.toStringAsFixed(0)}',
                           style: const TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
+                            fontSize: 28,
+                            fontWeight: FontWeight.w800,
                             color: AppColors.primary,
+                            letterSpacing: -0.5,
                           ),
                         ),
                       ],
@@ -468,9 +637,7 @@ class _CreateBudgetScreenState extends State<CreateBudgetScreen> {
                           final budgetId = _savedBudgetId ?? const Uuid().v4();
                           final budget = BudgetModel(
                             id: budgetId,
-                            clientName: _clientController.text.isEmpty
-                                ? 'Consumidor Final'
-                                : _clientController.text,
+                            clientName: _clientName,
                             total: total,
                             status: BudgetStatus.pending,
                             date: DateTime.now(),
@@ -483,9 +650,7 @@ class _CreateBudgetScreenState extends State<CreateBudgetScreen> {
                             context,
                             AppRoutes.fadeRoute(
                               PreviewPdfScreen(
-                                clientName: _clientController.text.isEmpty
-                                    ? 'Consumidor Final'
-                                    : _clientController.text,
+                                clientName: _clientName,
                                 items: _items,
                                 total: total,
                                 budgetId: budgetId,
@@ -496,15 +661,19 @@ class _CreateBudgetScreenState extends State<CreateBudgetScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.secondary,
                     foregroundColor: Colors.white,
+                    disabledBackgroundColor: Colors.grey.shade200,
+                    disabledForegroundColor: Colors.grey.shade600,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                     elevation: 0,
                   ),
-                  child: const Text(
-                    'Generar PDF',
-                    style: TextStyle(
+                  child: Text(
+                    _items.isEmpty
+                        ? 'Agrega al menos un ítem'
+                        : 'Generar PDF',
+                    style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                     ),
