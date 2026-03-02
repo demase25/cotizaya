@@ -26,6 +26,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _showTaxes = true;
   String _currency = 'MXN';
   String? _logoPath;
+  bool _isPro = false;
 
   @override
   void initState() {
@@ -36,6 +37,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _logoPath = profile.logoPath;
     _currency = profile.currency;
     _showTaxes = profile.showTaxes;
+    _isPro = profile.isPro;
+
+    // En FREE, siempre mostrar "PresuYa" como nombre de negocio.
+    if (!_isPro || _businessController.text.trim().isEmpty) {
+      _businessController.text = 'PresuYa';
+    }
   }
 
   @override
@@ -206,13 +213,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
     });
   }
 
+  void _saveCurrency(String currency) {
+    final profile = _repo.getProfile();
+    _repo.saveProfile(UserProfileModel(
+      businessName: profile.businessName,
+      phone: profile.phone,
+      logoPath: profile.logoPath,
+      currency: currency,
+      showTaxes: profile.showTaxes,
+      isPro: profile.isPro,
+    ));
+  }
+
   void _save() {
     final profile = UserProfileModel(
-      businessName: _businessController.text,
+      businessName: _isPro ? _businessController.text : 'PresuYa',
       phone: _phoneController.text,
-      logoPath: _logoPath,
+      logoPath: _isPro ? _logoPath : null,
       currency: _currency,
       showTaxes: _showTaxes,
+      isPro: _isPro,
     );
 
     _repo.saveProfile(profile);
@@ -247,23 +267,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _deleteAllBudgets() {
+    final messenger = ScaffoldMessenger.of(context);
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Borrar todos los presupuestos'),
         content: const Text(
           '¿Estás seguro? Esta acción no se puede deshacer.',
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Cancelar'),
           ),
           TextButton(
             onPressed: () {
-              // TODO: Implementar borrado de todos los presupuestos
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
+              _budgetRepo.deleteAll();
+              Navigator.pop(dialogContext);
+              messenger.showSnackBar(
                 SnackBar(
                   content: const Row(
                     children: [
@@ -288,6 +310,43 @@ class _SettingsScreenState extends State<SettingsScreen> {
               foregroundColor: AppColors.error,
             ),
             child: const Text('Borrar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showProDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: Row(
+          children: [
+            Icon(Icons.workspace_premium, color: AppColors.primary, size: 26),
+            const SizedBox(width: 10),
+            const Expanded(
+              child: Text(
+                'Función PRO',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: const Text(
+          'La personalización de logo y nombre del negocio forma parte de PresuYa PRO.\n\nPróximamente vas a poder desbloquearlo con un pago único.',
+          style: TextStyle(fontSize: 14, height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Entendido'),
           ),
         ],
       ),
@@ -325,18 +384,42 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Tu logo',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.primary,
-                    letterSpacing: 0.3,
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Tu logo',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.primary,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                    if (!_isPro)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withOpacity(0.06),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          'Solo PRO',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
                 const SizedBox(height: 20),
                 InkWell(
-                  onTap: _showImageSourceDialog,
+                  onTap: _isPro ? _showImageSourceDialog : _showProDialog,
                   borderRadius: BorderRadius.circular(20),
                   child: Container(
                     width: double.infinity,
@@ -345,13 +428,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       color: AppColors.background,
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                        color: _logoPath != null
+                        color: _isPro && _logoPath != null
                             ? AppColors.secondary.withOpacity(0.35)
                             : Colors.grey.shade200,
                         width: 1.5,
                       ),
                     ),
-                    child: _logoPath != null && File(_logoPath!).existsSync()
+                    child: _isPro && _logoPath != null && File(_logoPath!).existsSync()
                         ? Stack(
                             children: [
                               Center(
@@ -370,27 +453,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   ),
                                 ),
                               ),
-                              Positioned(
-                                top: 14,
-                                right: 14,
-                                child: Material(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(20),
-                                  elevation: 2,
-                                  child: InkWell(
-                                    onTap: _showImageSourceDialog,
+                              if (_isPro)
+                                Positioned(
+                                  top: 14,
+                                  right: 14,
+                                  child: Material(
+                                    color: Colors.white,
                                     borderRadius: BorderRadius.circular(20),
-                                    child: Container(
-                                      padding: const EdgeInsets.all(10),
-                                      child: Icon(
-                                        Icons.edit_outlined,
-                                        size: 20,
-                                        color: AppColors.primary,
+                                    elevation: 2,
+                                    child: InkWell(
+                                      onTap: _showImageSourceDialog,
+                                      borderRadius: BorderRadius.circular(20),
+                                      child: Container(
+                                        padding: const EdgeInsets.all(10),
+                                        child: Icon(
+                                          Icons.edit_outlined,
+                                          size: 20,
+                                          color: AppColors.primary,
+                                        ),
                                       ),
                                     ),
                                   ),
                                 ),
-                              ),
                             ],
                           )
                         : Center(
@@ -401,18 +485,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   width: 72,
                                   height: 72,
                                   decoration: BoxDecoration(
-                                    color: AppColors.secondary.withOpacity(0.12),
+                                    color: (_isPro
+                                            ? AppColors.secondary
+                                            : AppColors.textSecondary)
+                                        .withOpacity(0.1),
                                     shape: BoxShape.circle,
                                   ),
                                   child: Icon(
-                                    Icons.add_photo_alternate_outlined,
+                                    _isPro
+                                        ? Icons.add_photo_alternate_outlined
+                                        : Icons.lock_outline,
                                     size: 36,
-                                    color: AppColors.secondary,
+                                    color: _isPro
+                                        ? AppColors.secondary
+                                        : AppColors.textSecondary,
                                   ),
                                 ),
                                 const SizedBox(height: 16),
                                 Text(
-                                  'Toca para agregar',
+                                  _isPro ? 'Toca para agregar' : 'Disponible en PRO',
                                   style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w600,
@@ -421,7 +512,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  'Galería o cámara',
+                                  _isPro
+                                      ? 'Galería o cámara'
+                                      : 'Incluye logo en tus PDFs',
                                   style: TextStyle(
                                     fontSize: 13,
                                     color: AppColors.textSecondary,
@@ -432,7 +525,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ),
                   ),
                 ),
-                if (_logoPath != null) ...[
+                if (_isPro && _logoPath != null) ...[
                   const SizedBox(height: 16),
                   Center(
                     child: TextButton.icon(
@@ -520,10 +613,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 const SizedBox(height: 10),
                 TextField(
                   controller: _businessController,
+                  readOnly: !_isPro,
+                  onTap: _isPro ? null : _showProDialog,
                   decoration: InputDecoration(
-                    hintText: 'Ej: PresuYa Servicios',
+                    hintText: 'PresuYa',
                     filled: true,
-                    fillColor: Colors.white,
+                    fillColor: _isPro ? Colors.white : Colors.grey.shade100,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide(color: Colors.grey.shade200),
@@ -534,12 +629,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: AppColors.primary, width: 2),
+                      borderSide: BorderSide(
+                        color: _isPro ? AppColors.primary : Colors.grey.shade300,
+                        width: 2,
+                      ),
                     ),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   ),
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: _isPro ? AppColors.textPrimary : AppColors.textSecondary,
+                  ),
                 ),
+                if (!_isPro) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    'El nombre “PresuYa” se muestra en tus PDFs.',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 20),
                 Text(
                   'Teléfono / WhatsApp',
@@ -605,30 +717,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         DropdownMenuItem(value: 'EUR', child: Text('EUR - €')),
                       ],
                       onChanged: (value) {
-                        if (value != null) setState(() => _currency = value);
+                        if (value != null) {
+                          setState(() => _currency = value);
+                          _saveCurrency(value);
+                        }
                       },
                     ),
                   ],
                 ),
                 Divider(height: 28, color: Colors.grey.shade200),
-                Row(
-                  children: [
-                    Text(
-                      'Impuestos en PDF',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                    const Spacer(),
-                    Switch(
-                      value: _showTaxes,
-                      onChanged: (value) => setState(() => _showTaxes = value),
-                      activeColor: AppColors.secondary,
-                    ),
-                  ],
-                ),
               ],
             ),
           ),

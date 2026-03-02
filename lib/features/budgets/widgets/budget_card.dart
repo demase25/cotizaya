@@ -6,12 +6,14 @@ class BudgetCard extends StatelessWidget {
   final BudgetModel budget;
   final VoidCallback? onTap;
   final VoidCallback? onDelete;
+  final VoidCallback? onView;
 
   const BudgetCard({
     super.key,
     required this.budget,
     this.onTap,
     this.onDelete,
+    this.onView,
   });
 
   @override
@@ -121,7 +123,7 @@ class BudgetCard extends StatelessWidget {
                     ],
                   ),
                   // Botón de opciones
-                  if (onDelete != null) ...[
+                  if (onDelete != null || onView != null) ...[
                     const SizedBox(width: 6),
                     PopupMenuButton<String>(
                       icon: Icon(
@@ -135,28 +137,51 @@ class BudgetCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       itemBuilder: (context) => [
-                        PopupMenuItem(
-                          value: 'delete',
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.delete_outline,
-                                color: AppColors.error,
-                                size: 20,
-                              ),
-                              const SizedBox(width: 12),
-                              const Text(
-                                'Eliminar',
-                                style: TextStyle(
-                                  color: AppColors.error,
+                        if (onView != null)
+                          PopupMenuItem(
+                            value: 'view',
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.picture_as_pdf,
+                                  color: AppColors.primary,
+                                  size: 20,
                                 ),
-                              ),
-                            ],
+                                const SizedBox(width: 12),
+                                const Text(
+                                  'Ver presupuesto',
+                                  style: TextStyle(
+                                    color: AppColors.textPrimary,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
+                        if (onDelete != null)
+                          PopupMenuItem(
+                            value: 'delete',
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.delete_outline,
+                                  color: AppColors.error,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 12),
+                                const Text(
+                                  'Eliminar',
+                                  style: TextStyle(
+                                    color: AppColors.error,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                       ],
                       onSelected: (value) {
-                        if (value == 'delete' && onDelete != null) {
+                        if (value == 'view' && onView != null) {
+                          onView!();
+                        } else if (value == 'delete' && onDelete != null) {
                           onDelete!();
                         }
                       },

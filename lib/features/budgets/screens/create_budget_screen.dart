@@ -5,6 +5,7 @@ import '../models/budget_model.dart';
 import '../models/budget_item_model.dart';
 import '../widgets/budget_item_tile.dart';
 import 'preview_pdf_screen.dart';
+import '../../settings/data/settings_local_repository.dart';
 import '../../../core/constants/colors.dart';
 import '../../../routes/app_routes.dart';
 
@@ -19,6 +20,7 @@ class _CreateBudgetScreenState extends State<CreateBudgetScreen> {
   final _itemDescController = TextEditingController();
   final _itemPriceController = TextEditingController();
   final _repo = BudgetLocalRepository();
+  final _settingsRepo = SettingsLocalRepository();
 
   final List<BudgetItemModel> _items = [];
   String? _savedBudgetId;
@@ -43,6 +45,8 @@ class _CreateBudgetScreenState extends State<CreateBudgetScreen> {
     _repo.addRecentItem(desc, price);
   }
 
+  static const int _freeBudgetLimitPerMonth = 5;
+
   void _addItemFromHistory(BudgetItemModel item, BuildContext dialogContext) {
     setState(() {
       _items.add(BudgetItemModel(description: item.description, price: item.price));
@@ -56,6 +60,133 @@ class _CreateBudgetScreenState extends State<CreateBudgetScreen> {
     _itemDescController.dispose();
     _itemPriceController.dispose();
     super.dispose();
+  }
+
+  void _showProUpgradeDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: Row(
+          children: [
+            Icon(Icons.workspace_premium, color: AppColors.primary, size: 28),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                'Límite alcanzado',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Llegaste al límite gratuito de $_freeBudgetLimitPerMonth presupuestos este mes.',
+              style: TextStyle(
+                fontSize: 16,
+                color: AppColors.textPrimary,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Pasá a PRO para crear presupuestos sin límite, con tu logo y nombre de negocio personalizados.',
+              style: TextStyle(
+                fontSize: 15,
+                color: AppColors.textSecondary,
+                height: 1.4,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Más tarde',
+              style: TextStyle(
+                color: AppColors.textSecondary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: const Row(
+                    children: [
+                      Icon(Icons.info_outline, color: Colors.white, size: 20),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Text('Próximamente disponible'),
+                      ),
+                    ],
+                  ),
+                  backgroundColor: AppColors.primary,
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  margin: const EdgeInsets.all(16),
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.secondary,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: const Text('Hacerme PRO'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _generatePdf() {
+    final profile = _settingsRepo.getProfile();
+    if (!profile.isPro &&
+        _repo.getBudgetCountThisMonth() >= _freeBudgetLimitPerMonth &&
+        _savedBudgetId == null) {
+      _showProUpgradeDialog();
+      return;
+    }
+
+    final budgetId = _savedBudgetId ?? const Uuid().v4();
+    final budget = BudgetModel(
+      id: budgetId,
+      clientName: _clientName,
+      total: total,
+      status: BudgetStatus.pending,
+      date: DateTime.now(),
+    );
+    _repo.save(budget);
+    _savedBudgetId = budgetId;
+
+    Navigator.push(
+      context,
+      AppRoutes.fadeRoute(
+        PreviewPdfScreen(
+          clientName: _clientName,
+          items: _items,
+          total: total,
+          budgetId: budgetId,
+        ),
+      ),
+    );
   }
 
   String get _clientName {
@@ -630,34 +761,7 @@ class _CreateBudgetScreenState extends State<CreateBudgetScreen> {
               child: SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: _items.isEmpty
-                      ? null
-                      : () {
-                          // Guardar o actualizar el presupuesto antes de navegar
-                          final budgetId = _savedBudgetId ?? const Uuid().v4();
-                          final budget = BudgetModel(
-                            id: budgetId,
-                            clientName: _clientName,
-                            total: total,
-                            status: BudgetStatus.pending,
-                            date: DateTime.now(),
-                          );
-                          _repo.save(budget);
-                          _savedBudgetId = budgetId;
-
-                          // Navegar a PreviewPdfScreen con el ID del presupuesto
-                          Navigator.push(
-                            context,
-                            AppRoutes.fadeRoute(
-                              PreviewPdfScreen(
-                                clientName: _clientName,
-                                items: _items,
-                                total: total,
-                                budgetId: budgetId,
-                              ),
-                            ),
-                          );
-                        },
+                  onPressed: _items.isEmpty ? null : _generatePdf,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.secondary,
                     foregroundColor: Colors.white,

@@ -4,6 +4,7 @@ class UserProfileModel {
   final String? logoPath;
   final String currency;
   final bool showTaxes;
+  final bool isPro;
 
   UserProfileModel({
     required this.businessName,
@@ -11,6 +12,7 @@ class UserProfileModel {
     this.logoPath,
     this.currency = 'MXN',
     this.showTaxes = true,
+    this.isPro = false,
   });
 
   Map<String, dynamic> toMap() => {
@@ -19,6 +21,7 @@ class UserProfileModel {
         'logoPath': logoPath,
         'currency': currency,
         'showTaxes': showTaxes,
+        'isPro': isPro,
       };
 
   factory UserProfileModel.fromMap(Map map) {
@@ -28,6 +31,7 @@ class UserProfileModel {
       logoPath: map['logoPath'],
       currency: map['currency'] ?? 'MXN',
       showTaxes: map['showTaxes'] is bool ? map['showTaxes'] as bool : true,
+      isPro: map['isPro'] == true,
     );
   }
 }

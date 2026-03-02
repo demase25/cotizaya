@@ -14,6 +14,13 @@ class PdfGeneratorService {
     final settingsRepo = SettingsLocalRepository();
     final profile = settingsRepo.getProfile();
 
+    // FREE: siempre PresuYa. PRO: logo y nombre personalizados.
+    final businessName = profile.isPro
+        ? (profile.businessName.isEmpty ? 'PresuYa' : profile.businessName)
+        : 'PresuYa';
+    final logoPath = profile.isPro ? profile.logoPath : null;
+    final currencySymbol = _currencySymbol(profile.currency);
+
     final pdf = pw.Document();
 
     pdf.addPage(
@@ -24,16 +31,32 @@ class PdfGeneratorService {
             clientName: clientName,
             items: items,
             total: total,
-            businessName: profile.businessName.isEmpty
-                ? 'PresuYa'
-                : profile.businessName,
-            phone: profile.phone,
-            logoPath: profile.logoPath,
+            businessName: businessName,
+            phone: profile.isPro ? profile.phone : '',
+            logoPath: logoPath,
+            currencySymbol: currencySymbol,
           );
         },
       ),
     );
 
     return pdf;
+  }
+
+  static String _currencySymbol(String code) {
+    switch (code) {
+      case 'ARS':
+        return '\$';
+      case 'BRL':
+        return 'R\$';
+      case 'MXN':
+        return '\$';
+      case 'USD':
+        return '\$';
+      case 'EUR':
+        return '€';
+      default:
+        return '\$';
+    }
   }
 }

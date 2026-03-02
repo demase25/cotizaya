@@ -45,6 +45,16 @@ class BudgetLocalRepository {
     box.put(_recentItemsKey, toSave);
   }
 
+  /// Cantidad de presupuestos creados en el mes actual (para límite FREE).
+  int getBudgetCountThisMonth() {
+    final now = DateTime.now();
+    final startOfMonth = DateTime(now.year, now.month, 1);
+    final endOfMonth = DateTime(now.year, now.month + 1, 0, 23, 59, 59);
+    return getAll().where((b) {
+      return !b.date.isBefore(startOfMonth) && !b.date.isAfter(endOfMonth);
+    }).length;
+  }
+
   /// Nombres de clientes usados en presupuestos (únicos, más recientes primero).
   List<String> getRecentClientNames() {
     final budgets = getAll();
@@ -105,6 +115,19 @@ class BudgetLocalRepository {
     final map = Map<String, dynamic>.from(data);
     map['status'] = status.index;
     box.put(id, map);
+  }
+
+  /// Elimina todos los presupuestos (mantiene user_profile y recent_items).
+  void deleteAll() {
+    final keysToDelete = <String>[];
+    for (final key in box.keys) {
+      final k = key.toString();
+      if (k == 'user_profile' || k == _recentItemsKey) continue;
+      keysToDelete.add(k);
+    }
+    for (final key in keysToDelete) {
+      box.delete(key);
+    }
   }
 
   void delete(String id) {

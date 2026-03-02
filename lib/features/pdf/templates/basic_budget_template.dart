@@ -11,6 +11,7 @@ pw.Widget buildBudgetPdf({
   required String businessName,
   required String phone,
   String? logoPath,
+  String currencySymbol = '\$',
 }) {
   // Cargar el logo si existe
   pw.ImageProvider? logoProvider;
@@ -84,7 +85,7 @@ pw.Widget buildBudgetPdf({
             .map(
               (e) => [
                 e.description,
-                '\$${e.price.toStringAsFixed(2)}'
+                '$currencySymbol${e.price.toStringAsFixed(2)}'
               ],
             )
             .toList(),
@@ -96,7 +97,7 @@ pw.Widget buildBudgetPdf({
       pw.Align(
         alignment: pw.Alignment.centerRight,
         child: pw.Text(
-          'Total: \$${total.toStringAsFixed(2)}',
+          'Total: $currencySymbol${total.toStringAsFixed(2)}',
           style: pw.TextStyle(
             fontSize: 18,
             fontWeight: pw.FontWeight.bold,

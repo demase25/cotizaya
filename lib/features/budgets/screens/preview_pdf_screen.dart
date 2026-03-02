@@ -1,14 +1,14 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:printing/printing.dart';
-import 'package:uuid/uuid.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
+import 'package:downloadsfolder/downloadsfolder.dart';
+import 'package:file_picker/file_picker.dart';
 import '../../pdf/services/pdf_generator_service.dart';
 import '../models/budget_item_model.dart';
-import '../models/budget_model.dart';
-import '../data/budget_local_repository.dart';
 import '../../../core/constants/colors.dart';
 
 class PreviewPdfScreen extends StatefulWidget {
@@ -31,7 +31,181 @@ class PreviewPdfScreen extends StatefulWidget {
 
 class _PreviewPdfScreenState extends State<PreviewPdfScreen> {
   bool _isGenerating = false;
-  final _repo = BudgetLocalRepository();
+
+  String get _fileName {
+    final clientSlug = widget.clientName.replaceAll(' ', '_').replaceAll(RegExp(r'[^\w\-]'), '');
+    return 'presupuesto_${clientSlug}_${DateTime.now().millisecondsSinceEpoch}.pdf';
+  }
+
+  void _showSaveOptions(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                '¿Dónde guardar el PDF?',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 20),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppColors.secondary.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(Icons.folder_outlined, color: AppColors.secondary, size: 24),
+                ),
+                title: const Text('Guardar en Descargas'),
+                subtitle: const Text('Descargas/PresuYa'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _executeSave(context, toDownloads: true);
+                },
+              ),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(Icons.folder_open, color: AppColors.primary, size: 24),
+                ),
+                title: const Text('Elegir carpeta...'),
+                subtitle: const Text('Seleccionar ubicación'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _executeSave(context, toDownloads: false);
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _executeSave(BuildContext context, {required bool toDownloads}) async {
+    try {
+      final pdf = await PdfGeneratorService.generateBudgetPdf(
+        clientName: widget.clientName,
+        items: widget.items,
+        total: widget.total,
+      );
+      final pdfBytes = Uint8List.fromList(await pdf.save());
+      final fileName = _fileName;
+
+      if (toDownloads) {
+        await _saveToDownloads(context, pdfBytes, fileName);
+      } else {
+        await _saveToChosenFolder(context, pdfBytes, fileName);
+      }
+    } catch (e) {
+      if (mounted) _showError(context, 'Error al guardar: ${e.toString()}');
+    }
+  }
+
+  Future<void> _saveToDownloads(BuildContext context, Uint8List pdfBytes, String fileName) async {
+    bool saved = false;
+    String? saveLocation;
+    try {
+      final downloadDir = await getDownloadDirectory();
+      final presuyaDir = Directory(path.join(downloadDir.path, 'PresuYa'));
+      if (!await presuyaDir.exists()) await presuyaDir.create(recursive: true);
+      final file = File(path.join(presuyaDir.path, fileName));
+      await file.writeAsBytes(pdfBytes);
+      saved = true;
+      saveLocation = 'Descargas/PresuYa';
+    } catch (_) {
+      try {
+        final tempDir = await getTemporaryDirectory();
+        final tempFile = File(path.join(tempDir.path, fileName));
+        await tempFile.writeAsBytes(pdfBytes);
+        saved = await copyFileIntoDownloadFolder(tempFile.path, fileName) ?? false;
+        try { await tempFile.delete(); } catch (_) {}
+        if (saved) saveLocation = 'Descargas';
+      } catch (_) {
+        final dir = await getApplicationDocumentsDirectory();
+        await File(path.join(dir.path, fileName)).writeAsBytes(pdfBytes);
+        saved = true;
+        saveLocation = null;
+      }
+    }
+    if (mounted && saved) {
+      _showSuccess(context, saveLocation != null ? 'PDF guardado en $saveLocation' : 'PDF guardado');
+    } else if (!saved && mounted) {
+      _showError(context, 'No se pudo guardar en Descargas');
+    }
+  }
+
+  Future<void> _saveToChosenFolder(BuildContext context, Uint8List pdfBytes, String fileName) async {
+    final selectedPath = await FilePicker.platform.getDirectoryPath(
+      dialogTitle: 'Elegir carpeta para guardar el PDF',
+    );
+    if (selectedPath == null || !mounted) return;
+    if (selectedPath == '/' || selectedPath.isEmpty) {
+      if (mounted) _showError(context, 'No se pudo acceder a esa carpeta');
+      return;
+    }
+    try {
+      final file = File(path.join(selectedPath, fileName));
+      await file.writeAsBytes(pdfBytes);
+      if (mounted) _showSuccess(context, 'PDF guardado en la carpeta elegida');
+    } catch (e) {
+      if (mounted) _showError(context, 'Error: ${e.toString()}');
+    }
+  }
+
+  void _showSuccess(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle, color: Colors.white, size: 20),
+            const SizedBox(width: 12),
+            Expanded(child: Text(message)),
+          ],
+        ),
+        backgroundColor: AppColors.secondary,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
+  void _showError(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.error_outline, color: Colors.white, size: 20),
+            const SizedBox(width: 12),
+            Expanded(child: Text(message)),
+          ],
+        ),
+        backgroundColor: AppColors.error,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -218,7 +392,7 @@ class _PreviewPdfScreenState extends State<PreviewPdfScreen> {
                     await file.writeAsBytes(pdfBytes);
 
                     // Abrir WhatsApp directamente usando método nativo
-                    const platform = MethodChannel('com.cotiza_ya/whatsapp');
+                    const platform = MethodChannel('com.presuya.app/whatsapp');
                     try {
                       await platform.invokeMethod('shareToWhatsApp', {
                         'filePath': filePath,
@@ -291,72 +465,7 @@ class _PreviewPdfScreenState extends State<PreviewPdfScreen> {
                   side: BorderSide(color: AppColors.primary),
                   padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
-                onPressed: () async {
-                  try {
-                    // Generar el PDF
-                    final pdf = await PdfGeneratorService.generateBudgetPdf(
-                      clientName: widget.clientName,
-                      items: widget.items,
-                      total: widget.total,
-                    );
-                    final pdfBytes = await pdf.save();
-
-                    // Obtener el directorio de descargas
-                    final directory = await getApplicationDocumentsDirectory();
-                    final fileName = 'presupuesto_${widget.clientName.replaceAll(' ', '_')}_${DateTime.now().millisecondsSinceEpoch}.pdf';
-                    final filePath = path.join(directory.path, fileName);
-                    
-                    // Guardar el archivo
-                    final file = File(filePath);
-                    await file.writeAsBytes(pdfBytes);
-
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Row(
-                            children: [
-                              const Icon(Icons.check_circle, color: Colors.white, size: 20),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Text('PDF guardado: $fileName'),
-                              ),
-                            ],
-                          ),
-                          backgroundColor: AppColors.secondary,
-                          behavior: SnackBarBehavior.floating,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          margin: const EdgeInsets.all(16),
-                          duration: const Duration(seconds: 3),
-                        ),
-                      );
-                    }
-                  } catch (e) {
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Row(
-                            children: [
-                              const Icon(Icons.error_outline, color: Colors.white, size: 20),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Text('Error al guardar: ${e.toString()}'),
-                              ),
-                            ],
-                          ),
-                          backgroundColor: AppColors.error,
-                          behavior: SnackBarBehavior.floating,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          margin: const EdgeInsets.all(16),
-                          duration: const Duration(seconds: 3),
-                        ),
-                      );
-                    }
-                  }
-                },
+                onPressed: () => _showSaveOptions(context),
               ),
             ),
             const SizedBox(height: 12),

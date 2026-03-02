@@ -3,6 +3,8 @@ import 'package:hive/hive.dart';
 import '../data/budget_local_repository.dart';
 import '../models/budget_model.dart';
 import '../widgets/budget_card.dart';
+import '../models/budget_item_model.dart';
+import 'preview_pdf_screen.dart';
 import 'create_budget_screen.dart';
 import '../../settings/screens/settings_screen.dart';
 import '../../../core/constants/colors.dart';
@@ -71,6 +73,28 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     _box.put(_filterKey, _currentTabIndex);
   }
 
+  void _openBudgetPdf(BuildContext context, BudgetModel budget) {
+    // Como hoy no guardamos los ítems, armamos un resumen simple
+    final items = <BudgetItemModel>[
+      BudgetItemModel(
+        description: 'Presupuesto guardado',
+        price: budget.total,
+      ),
+    ];
+
+    Navigator.push(
+      context,
+      AppRoutes.fadeRoute(
+        PreviewPdfScreen(
+          clientName: budget.clientName,
+          items: items,
+          total: budget.total,
+          budgetId: budget.id,
+        ),
+      ),
+    );
+  }
+
   void _refresh() {
     if (mounted) {
       setState(() {});
@@ -78,6 +102,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   }
 
   void _confirmDelete(BuildContext context, BudgetModel budget) {
+    final budgetId = budget.id;
+    if (budgetId.isEmpty) return;
     showDialog(
       context: context,
       builder: (context) => Dialog(
@@ -184,8 +210,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                         // Cerrar el diálogo primero
                         Navigator.pop(context);
                         
-                        // Eliminar el presupuesto
-                        repo.delete(budget.id);
+                        // Eliminar solo el presupuesto seleccionado
+                        repo.delete(budgetId);
                         
                         // Esperar un momento para asegurar que la eliminación se complete
                         await Future.delayed(const Duration(milliseconds: 100));
@@ -277,13 +303,14 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             child: Material(
               color: Colors.transparent,
               child: InkWell(
-                onTap: () {
-                  Navigator.push(
+                onTap: () async {
+                  await Navigator.push(
                     context,
                     AppRoutes.fadeRoute(
                       const SettingsScreen(),
                     ),
                   );
+                  if (mounted) _refresh();
                 },
                 borderRadius: BorderRadius.circular(20),
                 child: Container(
@@ -521,6 +548,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                               });
                             },
                             onDelete: (budget) => _confirmDelete(context, budget),
+                            onView: (budget) => _openBudgetPdf(context, budget),
                           ),
                           _PendingBudgets(
                             budgets: allBudgets.where((b) => b.status == BudgetStatus.pending).toList(),
@@ -590,6 +618,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                               });
                             },
                             onDelete: (budget) => _confirmDelete(context, budget),
+                            onView: (budget) => _openBudgetPdf(context, budget),
                           ),
                           _PaidBudgets(
                             budgets: allBudgets.where((b) => b.status == BudgetStatus.paid).toList(),
@@ -636,6 +665,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                               );
                             },
                             onDelete: (budget) => _confirmDelete(context, budget),
+                            onView: (budget) => _openBudgetPdf(context, budget),
                           ),
                         ],
                       ),
@@ -846,17 +876,19 @@ class _AllBudgets extends StatelessWidget {
   final VoidCallback onRefresh;
   final Function(BudgetModel) onStatusChange;
   final Function(BudgetModel) onDelete;
+  final Function(BudgetModel) onView;
 
   const _AllBudgets({
     required this.budgets,
     required this.onRefresh,
     required this.onStatusChange,
     required this.onDelete,
+    required this.onView,
   });
 
   @override
   Widget build(BuildContext context) {
-    return _buildBudgetList(budgets, onRefresh, onStatusChange, onDelete);
+    return _buildBudgetList(budgets, onRefresh, onStatusChange, onDelete, onView);
   }
 }
 
@@ -866,17 +898,19 @@ class _PendingBudgets extends StatelessWidget {
   final VoidCallback onRefresh;
   final Function(BudgetModel) onStatusChange;
   final Function(BudgetModel) onDelete;
+  final Function(BudgetModel) onView;
 
   const _PendingBudgets({
     required this.budgets,
     required this.onRefresh,
     required this.onStatusChange,
     required this.onDelete,
+    required this.onView,
   });
 
   @override
   Widget build(BuildContext context) {
-    return _buildBudgetList(budgets, onRefresh, onStatusChange, onDelete);
+    return _buildBudgetList(budgets, onRefresh, onStatusChange, onDelete, onView);
   }
 }
 
@@ -886,17 +920,19 @@ class _PaidBudgets extends StatelessWidget {
   final VoidCallback onRefresh;
   final Function(BudgetModel) onStatusChange;
   final Function(BudgetModel) onDelete;
+  final Function(BudgetModel) onView;
 
   const _PaidBudgets({
     required this.budgets,
     required this.onRefresh,
     required this.onStatusChange,
     required this.onDelete,
+    required this.onView,
   });
 
   @override
   Widget build(BuildContext context) {
-    return _buildBudgetList(budgets, onRefresh, onStatusChange, onDelete);
+    return _buildBudgetList(budgets, onRefresh, onStatusChange, onDelete, onView);
   }
 }
 
@@ -906,6 +942,7 @@ Widget _buildBudgetList(
   VoidCallback onRefresh,
   Function(BudgetModel) onStatusChange,
   Function(BudgetModel) onDelete,
+  Function(BudgetModel) onView,
 ) {
   return RefreshIndicator(
     onRefresh: () async {
@@ -918,6 +955,7 @@ Widget _buildBudgetList(
       itemBuilder: (context, index) {
         final budget = budgetsToShow[index];
         return TweenAnimationBuilder<double>(
+          key: ValueKey(budget.id),
           tween: Tween(begin: 0.0, end: 1.0),
           duration: Duration(milliseconds: 300 + (index * 50)),
           curve: Curves.easeOut,
@@ -934,6 +972,7 @@ Widget _buildBudgetList(
             budget: budget,
             onTap: () => onStatusChange(budget),
             onDelete: () => onDelete(budget),
+            onView: () => onView(budget),
           ),
         );
       },

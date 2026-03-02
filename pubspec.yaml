@@ -54,6 +54,12 @@ dependencies:
   
   # Share files
   share_plus: ^7.2.1
+  
+  # Downloads folder (Android, iOS, etc.)
+  downloadsfolder: ^1.2.0
+  
+  # File picker (elegir ubicación al guardar)
+  file_picker: ^8.0.0
 
 dev_dependencies:
   flutter_test:
