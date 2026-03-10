@@ -7,7 +7,7 @@ Aplicación móvil de cotizaciones rápida y eficiente desarrollada con Flutter.
 - ✅ **Crear presupuestos rápidamente** - Interfaz intuitiva para crear cotizaciones en segundos
 - 📄 **Generar PDFs profesionales** - Exporta tus presupuestos en formato PDF con múltiples monedas (ARS, BRL, MXN, USD, EUR)
 - 💾 **Almacenamiento local** - Todos tus datos se guardan localmente usando Hive
-- 📥 **Guardar PDFs** - Guarda en Descargas/PresuYa o elige la carpeta que prefieras
+- 📥 **Guardar PDFs** - Guarda directamente en el celular (Descargas/PresuYa)
 - 🎨 **Diseño moderno** - Interfaz limpia y profesional
 - 📊 **Gestión de presupuestos** - Organiza tus presupuestos por estado (Pendiente/Cobrado)
 - 🖼️ **Logo personalizado** - Agrega el logo de tu negocio a los PDFs (PresuYa PRO)
@@ -46,8 +46,7 @@ flutter run
 - `path_provider` - Gestión de rutas de archivos
 - `uuid` - Generación de IDs únicos
 - `intl` - Formateo de fechas y monedas
-- `downloadsfolder` - Guardar PDFs en carpeta Descargas
-- `file_picker` - Elegir carpeta de destino al guardar
+- `downloadsfolder` - Guardar PDFs en carpeta Descargas del celular
 - `share_plus` - Compartir archivos
 
 ## 🏗️ Estructura del proyecto
@@ -92,11 +91,11 @@ lib/
 ### Generación de PDFs
 - Exportar presupuestos en formato PDF
 - Vista previa del PDF antes de guardar o compartir
-- Guardar en Descargas/PresuYa o elegir carpeta personalizada
+- **Guardar PDF**: guarda directamente en el celular (Descargas/PresuYa)
+- **Compartir**: envía por WhatsApp o diálogo nativo del sistema
 - Incluir logo personalizado (PresuYa PRO)
 - Símbolo de moneda según configuración (ARS, BRL, MXN, USD, EUR)
 - Información de contacto del negocio
-- Compartir por WhatsApp o diálogo nativo del sistema
 
 ### Configuración
 - Perfil del negocio (nombre, teléfono)
@@ -115,9 +114,8 @@ lib/
 
 ### v1.0.0 (2025)
 - **Correcciones**: Eliminación correcta de presupuestos (solo el seleccionado), botón "Borrar todos" en Settings funcional, moneda persiste al elegir
-- **PDFs**: Guardar en Descargas/PresuYa, opción de elegir carpeta de destino
+- **PDFs**: Guardar directamente en el celular (Descargas/PresuYa), botón Compartir para enviar por WhatsApp u otras apps
 - **UX**: Autocompletado de clientes, ítems recientes, límite PRO (5 presupuestos/mes)
-- **Compartir**: Integración con WhatsApp
 
 ## 📄 Licencia
 
