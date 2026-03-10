@@ -6,7 +6,6 @@ import 'package:printing/printing.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 import 'package:downloadsfolder/downloadsfolder.dart';
-import 'package:file_picker/file_picker.dart';
 import '../../pdf/services/pdf_generator_service.dart';
 import '../models/budget_item_model.dart';
 import '../../../core/constants/colors.dart';
@@ -37,68 +36,7 @@ class _PreviewPdfScreenState extends State<PreviewPdfScreen> {
     return 'presupuesto_${clientSlug}_${DateTime.now().millisecondsSinceEpoch}.pdf';
   }
 
-  void _showSaveOptions(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                '¿Dónde guardar el PDF?',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 20),
-              ListTile(
-                leading: Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: AppColors.secondary.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(Icons.folder_outlined, color: AppColors.secondary, size: 24),
-                ),
-                title: const Text('Guardar en Descargas'),
-                subtitle: const Text('Descargas/PresuYa'),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  _executeSave(context, toDownloads: true);
-                },
-              ),
-              ListTile(
-                leading: Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(Icons.folder_open, color: AppColors.primary, size: 24),
-                ),
-                title: const Text('Elegir carpeta...'),
-                subtitle: const Text('Seleccionar ubicación'),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  _executeSave(context, toDownloads: false);
-                },
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _executeSave(BuildContext context, {required bool toDownloads}) async {
+  Future<void> _savePdf(BuildContext context) async {
     try {
       final pdf = await PdfGeneratorService.generateBudgetPdf(
         clientName: widget.clientName,
@@ -106,13 +44,7 @@ class _PreviewPdfScreenState extends State<PreviewPdfScreen> {
         total: widget.total,
       );
       final pdfBytes = Uint8List.fromList(await pdf.save());
-      final fileName = _fileName;
-
-      if (toDownloads) {
-        await _saveToDownloads(context, pdfBytes, fileName);
-      } else {
-        await _saveToChosenFolder(context, pdfBytes, fileName);
-      }
+      await _saveToDownloads(context, pdfBytes, _fileName);
     } catch (e) {
       if (mounted) _showError(context, 'Error al guardar: ${e.toString()}');
     }
@@ -148,24 +80,6 @@ class _PreviewPdfScreenState extends State<PreviewPdfScreen> {
       _showSuccess(context, saveLocation != null ? 'PDF guardado en $saveLocation' : 'PDF guardado');
     } else if (!saved && mounted) {
       _showError(context, 'No se pudo guardar en Descargas');
-    }
-  }
-
-  Future<void> _saveToChosenFolder(BuildContext context, Uint8List pdfBytes, String fileName) async {
-    final selectedPath = await FilePicker.platform.getDirectoryPath(
-      dialogTitle: 'Elegir carpeta para guardar el PDF',
-    );
-    if (selectedPath == null || !mounted) return;
-    if (selectedPath == '/' || selectedPath.isEmpty) {
-      if (mounted) _showError(context, 'No se pudo acceder a esa carpeta');
-      return;
-    }
-    try {
-      final file = File(path.join(selectedPath, fileName));
-      await file.writeAsBytes(pdfBytes);
-      if (mounted) _showSuccess(context, 'PDF guardado en la carpeta elegida');
-    } catch (e) {
-      if (mounted) _showError(context, 'Error: ${e.toString()}');
     }
   }
 
@@ -465,7 +379,7 @@ class _PreviewPdfScreenState extends State<PreviewPdfScreen> {
                   side: BorderSide(color: AppColors.primary),
                   padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
-                onPressed: () => _showSaveOptions(context),
+                onPressed: () => _savePdf(context),
               ),
             ),
             const SizedBox(height: 12),
