@@ -42,18 +42,9 @@ class _CreateBudgetScreenState extends State<CreateBudgetScreen> {
       _itemDescController.clear();
       _itemPriceController.clear();
     });
-    _repo.addRecentItem(desc, price);
   }
 
   static const int _freeBudgetLimitPerMonth = 5;
-
-  void _addItemFromHistory(BudgetItemModel item, BuildContext dialogContext) {
-    setState(() {
-      _items.add(BudgetItemModel(description: item.description, price: item.price));
-    });
-    _repo.addRecentItem(item.description, item.price);
-    Navigator.pop(dialogContext);
-  }
 
   @override
   void dispose() {
@@ -197,89 +188,25 @@ class _CreateBudgetScreenState extends State<CreateBudgetScreen> {
   void _showAddItemDialog() {
     _itemDescController.clear();
     _itemPriceController.clear();
-    final recentItems = _repo.getRecentItems();
 
     showDialog(
       context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          title: Row(
-            children: [
-              Icon(
-                Icons.add_circle,
-                color: AppColors.primary,
-                size: 24,
-              ),
-              const SizedBox(width: 12),
-              const Text(
-                'Añadir ítem',
-                style: TextStyle(
-                  color: AppColors.textPrimary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (recentItems.isNotEmpty) ...[
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.history,
-                        size: 18,
-                        color: AppColors.textSecondary,
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        'Usados recientemente',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: recentItems.take(12).map((item) {
-                      return ActionChip(
-                        avatar: Icon(
-                          Icons.add,
-                          size: 18,
-                          color: AppColors.secondary,
-                        ),
-                        label: Text(
-                          '${item.description}  ·  \$${item.price.toStringAsFixed(0)}',
-                          style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        onPressed: () => _addItemFromHistory(item, dialogContext),
-                        backgroundColor: AppColors.secondary.withOpacity(0.1),
-                        side: BorderSide(
-                          color: AppColors.secondary.withOpacity(0.3),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                  const SizedBox(height: 20),
-                  Divider(height: 1, color: Colors.grey.shade200),
-                  const SizedBox(height: 16),
-                ],
-                TextField(
+      builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Icon(Icons.add_circle, color: AppColors.primary, size: 24),
+            const SizedBox(width: 12),
+            const Text(
+              'Añadir ítem',
+              style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
               controller: _itemDescController,
               style: const TextStyle(color: AppColors.textPrimary),
               autofocus: true,
@@ -300,15 +227,9 @@ class _CreateBudgetScreenState extends State<CreateBudgetScreen> {
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(
-                    color: AppColors.primary,
-                    width: 2,
-                  ),
+                  borderSide: const BorderSide(color: AppColors.primary, width: 2),
                 ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               ),
             ),
             const SizedBox(height: 16),
@@ -322,10 +243,7 @@ class _CreateBudgetScreenState extends State<CreateBudgetScreen> {
                 hintText: 'Ej: 100',
                 hintStyle: TextStyle(color: Colors.grey.shade400),
                 prefixText: '\$ ',
-                prefixStyle: const TextStyle(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.bold,
-                ),
+                prefixStyle: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
                 filled: true,
                 fillColor: Colors.grey.shade50,
                 border: OutlineInputBorder(
@@ -338,26 +256,17 @@ class _CreateBudgetScreenState extends State<CreateBudgetScreen> {
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(
-                    color: AppColors.primary,
-                    width: 2,
-                  ),
+                  borderSide: const BorderSide(color: AppColors.primary, width: 2),
                 ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               ),
             ),
-              ],
-            ),
-          ),
+          ],
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            style: TextButton.styleFrom(
-              foregroundColor: AppColors.textSecondary,
-            ),
+            style: TextButton.styleFrom(foregroundColor: AppColors.textSecondary),
             child: const Text('Cancelar'),
           ),
           ElevatedButton(
@@ -371,15 +280,12 @@ class _CreateBudgetScreenState extends State<CreateBudgetScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
             child: const Text('Agregar'),
           ),
         ],
-      );
-      }
+      ),
     );
   }
 

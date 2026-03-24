@@ -45,6 +45,37 @@ class BudgetLocalRepository {
     box.put(_recentItemsKey, toSave);
   }
 
+  /// Elimina un ítem reciente por descripción.
+  void deleteRecentItem(String description) {
+    final desc = description.trim().toLowerCase();
+    final current = getRecentItems();
+    final updated = current.where((i) => i.description.trim().toLowerCase() != desc).toList();
+    final toSave = updated.map((i) => {
+      'description': i.description,
+      'price': i.price,
+    }).toList();
+    box.put(_recentItemsKey, toSave);
+  }
+
+  /// Modifica un ítem reciente existente (descripción y/o precio).
+  void updateRecentItem(String oldDescription, String newDescription, double newPrice) {
+    final oldDesc = oldDescription.trim().toLowerCase();
+    final newDesc = newDescription.trim();
+    if (newDesc.isEmpty) return;
+    final current = getRecentItems();
+    final updated = current.map((i) {
+      if (i.description.trim().toLowerCase() == oldDesc) {
+        return BudgetItemModel(description: newDesc, price: newPrice);
+      }
+      return i;
+    }).toList();
+    final toSave = updated.map((i) => {
+      'description': i.description,
+      'price': i.price,
+    }).toList();
+    box.put(_recentItemsKey, toSave);
+  }
+
   /// Cantidad de presupuestos creados en el mes actual (para límite FREE).
   int getBudgetCountThisMonth() {
     final now = DateTime.now();
