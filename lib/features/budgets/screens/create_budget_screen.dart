@@ -44,7 +44,7 @@ class _CreateBudgetScreenState extends State<CreateBudgetScreen> {
     });
   }
 
-  static const int _freeBudgetLimitPerMonth = 5;
+  static const int _freeBudgetLimitPerMonth = 10;
 
   @override
   void dispose() {
@@ -61,86 +61,129 @@ class _CreateBudgetScreenState extends State<CreateBudgetScreen> {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
         ),
-        title: Row(
-          children: [
-            Icon(Icons.workspace_premium, color: AppColors.primary, size: 28),
-            const SizedBox(width: 12),
-            const Expanded(
-              child: Text(
-                'Límite alcanzado',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-          ],
-        ),
+        contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
         content: Column(
           mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Llegaste al límite gratuito de $_freeBudgetLimitPerMonth presupuestos este mes.',
-              style: TextStyle(
-                fontSize: 16,
-                color: AppColors.textPrimary,
-                height: 1.4,
+            // Icono PRO
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: AppColors.secondary.withOpacity(0.12),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.workspace_premium,
+                color: AppColors.secondary,
+                size: 36,
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
+            // Título
             Text(
-              'Pasá a PRO para crear presupuestos sin límite, con tu logo y nombre de negocio personalizados.',
+              'Usaste tus $_freeBudgetLimitPerMonth presupuestos de este mes 🎉',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary,
+                height: 1.3,
+              ),
+            ),
+            const SizedBox(height: 14),
+            // Beneficios
+            Text(
+              'Con PRO tenés ilimitados + tu logo + tu nombre en cada PDF.',
+              textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 15,
                 color: AppColors.textSecondary,
-                height: 1.4,
+                height: 1.5,
               ),
             ),
+            const SizedBox(height: 10),
+            // CTA de valor
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              decoration: BoxDecoration(
+                color: AppColors.secondary.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: AppColors.secondary.withOpacity(0.2),
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.bolt, color: AppColors.secondary, size: 18),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Un solo pago, para siempre.',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.secondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
           ],
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              'Más tarde',
-              style: TextStyle(
-                color: AppColors.textSecondary,
-                fontWeight: FontWeight.w600,
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Row(
+                      children: [
+                        Icon(Icons.info_outline, color: Colors.white, size: 20),
+                        SizedBox(width: 12),
+                        Expanded(child: Text('Próximamente disponible')),
+                      ],
+                    ),
+                    backgroundColor: AppColors.primary,
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    margin: const EdgeInsets.all(16),
+                  ),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.secondary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 0,
+              ),
+              child: const Text(
+                'Quiero PRO',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
               ),
             ),
           ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: const Row(
-                    children: [
-                      Icon(Icons.info_outline, color: Colors.white, size: 20),
-                      SizedBox(width: 12),
-                      Expanded(
-                        child: Text('Próximamente disponible'),
-                      ),
-                    ],
-                  ),
-                  backgroundColor: AppColors.primary,
-                  behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  margin: const EdgeInsets.all(16),
+          const SizedBox(height: 4),
+          SizedBox(
+            width: double.infinity,
+            child: TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                'Más tarde',
+                style: TextStyle(
+                  color: AppColors.textSecondary,
+                  fontWeight: FontWeight.w500,
                 ),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.secondary,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
               ),
             ),
-            child: const Text('Hacerme PRO'),
           ),
         ],
       ),

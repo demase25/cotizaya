@@ -316,6 +316,198 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  Widget _buildProUpgradeCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            AppColors.primary,
+            AppColors.primary.withOpacity(0.85),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withOpacity(0.25),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Badge + título
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.secondary,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Text(
+                  'GRATIS',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.8,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              const Text(
+                'Plan actual',
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            'Pasate a PRO',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.5,
+            ),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Un solo pago, para siempre.',
+            style: TextStyle(
+              color: Colors.white70,
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(height: 16),
+          // Beneficios
+          _ProBenefit(icon: Icons.all_inclusive, text: 'Presupuestos sin límite mensual'),
+          const SizedBox(height: 8),
+          _ProBenefit(icon: Icons.image_outlined, text: 'Tu logo en cada PDF'),
+          const SizedBox(height: 8),
+          _ProBenefit(icon: Icons.business_outlined, text: 'Tu nombre de negocio en los PDFs'),
+          const SizedBox(height: 20),
+          // Botón
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Row(
+                      children: [
+                        Icon(Icons.info_outline, color: Colors.white, size: 20),
+                        SizedBox(width: 12),
+                        Expanded(child: Text('Próximamente disponible')),
+                      ],
+                    ),
+                    backgroundColor: AppColors.primary,
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    margin: const EdgeInsets.all(16),
+                  ),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.secondary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: const Text(
+                'Quiero PRO',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProActiveCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.secondary.withOpacity(0.3), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.secondary.withOpacity(0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.secondary.withOpacity(0.12),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(Icons.workspace_premium, color: AppColors.secondary, size: 28),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'PresuYa PRO',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Plan activo · Presupuestos ilimitados',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              color: AppColors.secondary.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              'Activo',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: AppColors.secondary,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showProDialog() {
     showDialog(
       context: context,
@@ -340,8 +532,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ],
         ),
         content: const Text(
-          'La personalización de logo y nombre del negocio forma parte de PresuYa PRO.\n\nPróximamente vas a poder desbloquearlo con un pago único.',
-          style: TextStyle(fontSize: 14, height: 1.4),
+          'Con PresuYa PRO podés:\n\n• Crear presupuestos sin límite mensual\n• Agregar tu logo a los PDFs\n• Personalizar el nombre de tu negocio\n\nPróximamente disponible.',
+          style: TextStyle(fontSize: 14, height: 1.6),
         ),
         actions: [
           TextButton(
@@ -379,6 +571,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
       body: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
         children: [
+          // ── Sección PRO ──────────────────────────────────────────
+          _isPro ? _buildProActiveCard() : _buildProUpgradeCard(),
+
+          const SizedBox(height: 24),
+
           // Logo primero — protagonista
           _SectionCard(
             child: Column(
@@ -816,6 +1013,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 24),
         ],
       ),
+    );
+  }
+}
+
+// Fila de beneficio PRO
+class _ProBenefit extends StatelessWidget {
+  final IconData icon;
+  final String text;
+
+  const _ProBenefit({required this.icon, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, color: Colors.white70, size: 18),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            text,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
