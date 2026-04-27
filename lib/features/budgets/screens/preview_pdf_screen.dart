@@ -306,7 +306,7 @@ class _PreviewPdfScreenState extends State<PreviewPdfScreen> {
                     await file.writeAsBytes(pdfBytes);
 
                     // Abrir WhatsApp directamente usando método nativo
-                    const platform = MethodChannel('com.presuya.app/whatsapp');
+                    const platform = MethodChannel('com.presuya.cotizaya/whatsapp');
                     try {
                       await platform.invokeMethod('shareToWhatsApp', {
                         'filePath': filePath,
