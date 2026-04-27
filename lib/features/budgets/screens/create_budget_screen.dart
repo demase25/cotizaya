@@ -118,12 +118,15 @@ class _CreateBudgetScreenState extends State<CreateBudgetScreen> {
                 children: [
                   Icon(Icons.bolt, color: AppColors.secondary, size: 18),
                   const SizedBox(width: 6),
-                  Text(
-                    'Un solo pago, para siempre.',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.secondary,
+                  Flexible(
+                    child: Text(
+                      'Un solo pago, para siempre.',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.secondary,
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],
@@ -192,12 +195,13 @@ class _CreateBudgetScreenState extends State<CreateBudgetScreen> {
 
   void _generatePdf() {
     final profile = _settingsRepo.getProfile();
-    if (!profile.isPro &&
-        _repo.getBudgetCountThisMonth() >= _freeBudgetLimitPerMonth &&
-        _savedBudgetId == null) {
-      _showProUpgradeDialog();
-      return;
-    }
+    // LAUNCH MODE: limit disabled until in-app purchases are integrated
+    // if (!profile.isPro &&
+    //     _repo.getBudgetCountThisMonth() >= _freeBudgetLimitPerMonth &&
+    //     _savedBudgetId == null) {
+    //   _showProUpgradeDialog();
+    //   return;
+    // }
 
     final budgetId = _savedBudgetId ?? const Uuid().v4();
     final budget = BudgetModel(
